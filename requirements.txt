@@ -1,0 +1,48 @@
+# Core Framework
+fastapi>=0.109.0,<1.0.0
+uvicorn[standard]>=0.27.0,<1.0.0
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0,<3.0.0
+
+# Document Processing
+pypdf>=4.0.0,<5.0.0
+python-multipart>=0.0.6,<1.0.0
+openpyxl>=3.1.2,<4.0.0
+xlrd>=2.0.1,<3.0.0
+pandas>=2.2.0,<3.0.0
+python-docx>=1.1.0,<2.0.0
+
+# OCR & Image Processing
+Pillow>=10.2.0,<11.0.0
+numpy>=1.26.0,<3.0.0
+opencv-python>=4.9.0,<5.0.0
+PyMuPDF>=1.24.0,<2.0.0
+
+# Cloud OCR Providers
+boto3>=1.34.0,<2.0.0
+aioboto3>=13.0.0,<14.0.0
+google-cloud-vision>=3.7.0,<4.0.0
+aiohttp>=3.9.0,<4.0.0
+requests>=2.31.0,<3.0.0
+
+# Database & Storage
+motor>=3.3.2,<4.0.0
+pymongo>=4.6.1,<5.0.0
+
+# Utils
+httpx>=0.26.0,<1.0.0
+loguru>=0.7.3,<1.0.0
+tenacity>=8.2.0,<9.0.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+black>=24.0.0
+isort>=5.13.0
+flake8>=7.0.0
+mypy>=1.8.0
+pylint>=3.0.0
+pre-commit>=3.6.0
+ipython>=8.20.0
