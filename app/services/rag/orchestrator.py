@@ -148,6 +148,7 @@ class RAGOrchestrator:
         user_query: str,
         filter_conditions: Optional[Dict[str, Any]] = None,
         use_llm: bool = True,
+        collection_name: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process a user query and return relevant answer.
@@ -156,6 +157,7 @@ class RAGOrchestrator:
             user_query: User's question/query
             filter_conditions: Optional filters for vector search (e.g., {"act_name": "VAT Act"})
             use_llm: Whether to use LLM for answer synthesis (default: True)
+            collection_name: Optional specific collection to search (overrides collection routing)
 
         Returns:
             Dictionary with:
@@ -220,21 +222,35 @@ class RAGOrchestrator:
 
         # Step 3: Determine which collections to search
         logger.debug("Step 3: Routing query to collections")
-        try:
-            collection_names = self.collection_router.route_query(user_query)
-            logger.info(f"Query routed to {len(collection_names)} collection(s): {collection_names}")
-        except Exception as e:
-            logger.error(f"Error routing query to collections: {e}")
-            # Fallback: get all collections
-            collection_names = self.vector_store.get_all_collections()
-            if not collection_names:
+        if collection_name:
+            # Use specified collection if provided
+            all_collections = self.vector_store.get_all_collections()
+            if collection_name not in all_collections:
                 return {
                     "query": user_query,
                     "chunks": [],
-                    "answer": "Error: No collections available in the knowledge base.",
+                    "answer": f"Error: Collection '{collection_name}' not found.",
                     "sources": [],
-                    "error": "No collections found",
+                    "error": "Collection not found",
                 }
+            collection_names = [collection_name]
+            logger.info(f"Using specified collection: {collection_name}")
+        else:
+            try:
+                collection_names = self.collection_router.route_query(user_query)
+                logger.info(f"Query routed to {len(collection_names)} collection(s): {collection_names}")
+            except Exception as e:
+                logger.error(f"Error routing query to collections: {e}")
+                # Fallback: get all collections
+                collection_names = self.vector_store.get_all_collections()
+                if not collection_names:
+                    return {
+                        "query": user_query,
+                        "chunks": [],
+                        "answer": "Error: No collections available in the knowledge base.",
+                        "sources": [],
+                        "error": "No collections found",
+                    }
 
         # Step 4: Search Qdrant across relevant collections (hybrid or vector-only)
         # Determine how many chunks to retrieve (more if re-ranking is enabled)

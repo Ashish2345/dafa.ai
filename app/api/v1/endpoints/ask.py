@@ -26,6 +26,9 @@ class QueryRequest(BaseModel):
     filter_conditions: Optional[Dict[str, Any]] = Field(
         default=None, description="Optional filters (e.g., {'act_name': 'VAT Act'})"
     )
+    collection_name: Optional[str] = Field(
+        default=None, description="Optional specific collection to search (overrides collection routing)"
+    )
 
 
 class QueryResponse(BaseModel):
@@ -77,6 +80,7 @@ async def ask_question(
             user_query=request.query,
             filter_conditions=request.filter_conditions,
             use_llm=request.use_llm,
+            collection_name=request.collection_name,
         )
 
         # Check for errors

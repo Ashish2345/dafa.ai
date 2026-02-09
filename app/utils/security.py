@@ -5,7 +5,7 @@ Security utilities for API key validation and other security functions.
 import secrets
 from typing import Optional
 
-from fastapi import Header, HTTPException, status
+from fastapi import Header, HTTPException, Request, status
 
 from app.settings import settings
 from app.utils.exceptions import AuthenticationError
@@ -37,19 +37,26 @@ def validate_api_key_value(api_key: str) -> bool:
     return api_key in settings.api_keys
 
 
-async def get_api_key(x_api_key: Optional[str] = Header(None, alias=settings.api_key_header)) -> str:
+async def get_api_key(
+    request: Request,
+    x_api_key: Optional[str] = Header(None, alias=settings.api_key_header)
+) -> str:
     """
     Dependency to extract and validate API key from request headers.
 
+    Skips validation for OPTIONS requests (CORS preflight).
+
     Args:
+        request: FastAPI request object
         x_api_key: API key from request header
 
     Returns:
-        Validated API key
+        Validated API key (or empty string for OPTIONS requests)
 
     Raises:
         HTTPException: If API key is missing or invalid
     """
+    # Skip API key validation for OPTIONS requests (CORS preflight)
     if not x_api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

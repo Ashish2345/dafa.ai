@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     workers: int = Field(default=4, description="Number of workers", ge=1, le=32)
 
     # CORS
-    cors_origins: List[str] = Field(default=["http://localhost:3000"], description="Allowed CORS origins")
+    cors_origins: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"], description="Allowed CORS origins")
     cors_allow_credentials: bool = Field(default=True, description="Allow credentials in CORS")
 
     # File Upload
@@ -54,6 +54,8 @@ class Settings(BaseSettings):
 
     # MongoDB
     mongodb_url: str = Field(default="mongodb://localhost:27017", description="MongoDB connection URL")
+    mongodb_username: Optional[str] = Field(default=None, description="MongoDB username")
+    mongodb_password: Optional[str] = Field(default=None, description="MongoDB password")
     mongodb_db_name: str = Field(default="docparser", description="MongoDB database name")
     mongodb_max_pool_size: int = Field(default=10, description="MongoDB max connection pool size", ge=1, le=100)
     mongodb_min_pool_size: int = Field(default=1, description="MongoDB min connection pool size", ge=1, le=10)

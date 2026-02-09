@@ -45,17 +45,17 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Manage database connection lifecycle."""
     logger.info(f"Starting {settings.app_name} in {settings.environment.value} mode")
-    # try:
-    #     await mongodb.connect(settings)
-    #     logger.info("Application startup complete")
-    # except Exception as e:
-    #     logger.error(f"Failed to start application: {e}")
-    #     raise
+    try:
+        await mongodb.connect(settings)
+        logger.info("Application startup complete")
+    except Exception as e:
+        logger.error(f"Failed to start application: {e}")
+        raise
 
     yield
 
     logger.info("Shutting down application")
-    # await mongodb.disconnect()
+    await mongodb.disconnect()
     logger.info("Application shutdown complete")
 
 

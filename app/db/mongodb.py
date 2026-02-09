@@ -34,10 +34,59 @@ class MongoDB:
             DatabaseError: If connection fails
         """
         try:
-            logger.info(f"Connecting to MongoDB at {settings.mongodb_url}")
+            # Build MongoDB connection URL with authentication if provided
+            from urllib.parse import quote_plus
+            
+            mongodb_url = settings.mongodb_url
+            if settings.mongodb_username and settings.mongodb_password:
+                # URL encode username and password to handle special characters
+                encoded_username = quote_plus(settings.mongodb_username)
+                encoded_password = quote_plus(settings.mongodb_password)
+                
+                # Parse the URL and add authentication
+                if mongodb_url.startswith("mongodb://"):
+                    # Extract host and port
+                    url_parts = mongodb_url.replace("mongodb://", "").split("/")
+                    host_port = url_parts[0]
+                    database_part = url_parts[1] if len(url_parts) > 1 else ""
+                    
+                    # Build authenticated URL with authSource
+                    mongodb_url = f"mongodb://{encoded_username}:{encoded_password}@{host_port}"
+                    
+                    # Parse database and query parameters
+                    if database_part:
+                        if "?" in database_part:
+                            db_name, query_params = database_part.split("?", 1)
+                            mongodb_url += f"/{db_name}?{query_params}&authSource={settings.mongodb_db_name}"
+                        else:
+                            mongodb_url += f"/{database_part}?authSource={settings.mongodb_db_name}"
+                    else:
+                        mongodb_url += f"/{settings.mongodb_db_name}?authSource={settings.mongodb_db_name}"
+                elif mongodb_url.startswith("mongodb+srv://"):
+                    # MongoDB Atlas connection string
+                    url_parts = mongodb_url.replace("mongodb+srv://", "").split("/")
+                    host = url_parts[0]
+                    database_part = url_parts[1] if len(url_parts) > 1 else ""
+                    
+                    # Build authenticated URL with authSource
+                    mongodb_url = f"mongodb+srv://{encoded_username}:{encoded_password}@{host}"
+                    
+                    # Parse database and query parameters
+                    if database_part:
+                        if "?" in database_part:
+                            db_name, query_params = database_part.split("?", 1)
+                            mongodb_url += f"/{db_name}?{query_params}&authSource={settings.mongodb_db_name}"
+                        else:
+                            mongodb_url += f"/{database_part}?authSource={settings.mongodb_db_name}"
+                    else:
+                        mongodb_url += f"/{settings.mongodb_db_name}?authSource={settings.mongodb_db_name}"
 
+            # Log connection without exposing credentials
+            log_url = mongodb_url.split('@')[-1] if '@' in mongodb_url else mongodb_url
+            logger.info(f"Connecting to MongoDB at {log_url}")
+            
             self.client = AsyncIOMotorClient(
-                settings.mongodb_url,
+                mongodb_url,
                 maxPoolSize=settings.mongodb_max_pool_size,
                 minPoolSize=settings.mongodb_min_pool_size,
                 serverSelectionTimeoutMS=5000,
@@ -71,7 +120,7 @@ class MongoDB:
 
     async def _create_indexes(self) -> None:
         """Create database indexes for optimized queries."""
-        if not self.database:
+        if self.database is None:
             return
 
         try:
@@ -110,7 +159,7 @@ class MongoDB:
         Raises:
             DatabaseError: If not connected
         """
-        if not self.database:
+        if self.database is None:
             raise DatabaseError("Not connected to MongoDB. Call connect() first.")
         return self.database
 
