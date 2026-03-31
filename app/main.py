@@ -75,13 +75,15 @@ def create_app() -> FastAPI:
     app.add_exception_handler(AppException, custom_http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=settings.cors_allow_credentials,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    cors_kw: dict = {
+        "allow_origins": settings.cors_origins,
+        "allow_credentials": settings.cors_allow_credentials,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+    if settings.cors_allow_origin_regex:
+        cors_kw["allow_origin_regex"] = settings.cors_allow_origin_regex
+    app.add_middleware(CORSMiddleware, **cors_kw)
 
     app.include_router(api_router, prefix=settings.api_v1_prefix)
 

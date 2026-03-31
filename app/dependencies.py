@@ -4,18 +4,16 @@ FastAPI dependency injection providers.
 Contains functions that provide dependencies to endpoint handlers.
 """
 
-from motor.motor_asyncio import AsyncIOMotorDatabase
-
 from app.db.mongodb import get_database
 from app.services.parsers.factory import ParserFactory
 
 
-async def get_db() -> AsyncIOMotorDatabase:
+async def get_db():
     """
     Get database instance.
 
     Returns:
-        MongoDB database instance
+        MongoDB database instance (supports async operations)
     """
     return await get_database()
 

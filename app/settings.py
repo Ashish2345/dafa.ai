@@ -33,9 +33,26 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="Server port", ge=1, le=65535)
     workers: int = Field(default=4, description="Number of workers", ge=1, le=32)
 
-    # CORS
-    cors_origins: List[str] = Field(default=["http://localhost:3000", "http://localhost:8000"], description="Allowed CORS origins")
+    # CORS — browsers send the page origin (e.g. https://*.ngrok-free.app); it must be listed or match cors_allow_origin_regex
+    cors_origins: List[str] = Field(
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ],
+        description="Allowed CORS origins (exact match). Add more via CORS_ORIGINS=comma,separated",
+    )
     cors_allow_credentials: bool = Field(default=True, description="Allow credentials in CORS")
+    cors_allow_origin_regex: Optional[str] = Field(
+        default=(
+            r"https://[a-zA-Z0-9][a-zA-Z0-9.-]*\.ngrok-free\.app$|"
+            r"https://[a-zA-Z0-9][a-zA-Z0-9.-]*\.ngrok\.io$|"
+            r"https://[a-zA-Z0-9][a-zA-Z0-9.-]*\.ngrok\.app$|"
+            r"http://[a-zA-Z0-9][a-zA-Z0-9.-]*\.ngrok-free\.app(?::\d+)?$"
+        ),
+        description="Extra allowed origins (regex). Matches public ngrok hostnames. Disable in production with CORS_ALLOW_ORIGIN_REGEX=",
+    )
 
     # File Upload
     max_upload_size: int = Field(default=52428800, description="Max upload size in bytes (50MB)", ge=1024)
@@ -56,7 +73,7 @@ class Settings(BaseSettings):
     mongodb_url: str = Field(default="mongodb://localhost:27017", description="MongoDB connection URL")
     mongodb_username: Optional[str] = Field(default=None, description="MongoDB username")
     mongodb_password: Optional[str] = Field(default=None, description="MongoDB password")
-    mongodb_db_name: str = Field(default="docparser", description="MongoDB database name")
+    mongodb_db_name: str = Field(default="dafaai", description="MongoDB database name")
     mongodb_max_pool_size: int = Field(default=10, description="MongoDB max connection pool size", ge=1, le=100)
     mongodb_min_pool_size: int = Field(default=1, description="MongoDB min connection pool size", ge=1, le=10)
 
@@ -144,12 +161,45 @@ class Settings(BaseSettings):
     download_retry_wait_min: float = Field(default=1.0, description="Minimum wait between retries in seconds", ge=0.1)
     download_retry_wait_max: float = Field(default=10.0, description="Maximum wait between retries in seconds", ge=1.0)
 
+    # Batch document injection (cron / CLI)
+    injection_sources_config: str = Field(
+        default="config/sources.yaml",
+        description="Path to YAML source definitions (relative to backend root or absolute)",
+    )
+    injection_concurrency: int = Field(
+        default=2, description="Max concurrent documents processed during injection", ge=1, le=16
+    )
+    injection_retry_attempts: int = Field(
+        default=3, description="Reserved: per-document retries (sources use httpx defaults)", ge=1, le=10
+    )
+    injection_scraper_delay: float = Field(
+        default=1.0, description="Delay between HTTP requests when scraping sources (seconds)", ge=0.0, le=60.0
+    )
+    injection_local_log_path: str = Field(
+        default="data/injection_log.json",
+        description="JSON file for injection dedupe/history when MongoDB is unavailable (relative to backend root or absolute)",
+    )
+    injection_download_dir: str = Field(
+        default="data/downloaded",
+        description="Default base directory for --download-only (relative to backend root or absolute)",
+    )
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list."""
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
+
+    @field_validator("cors_allow_origin_regex", mode="before")
+    @classmethod
+    def parse_cors_allow_origin_regex(cls, v):
+        """Unset empty string so production can disable regex with CORS_ALLOW_ORIGIN_REGEX= """
+        if v is None:
+            return None
+        if isinstance(v, str) and not v.strip():
+            return None
         return v
 
     @field_validator("allowed_extensions", mode="before")

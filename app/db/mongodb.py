@@ -5,10 +5,13 @@ Handles database connection, disconnection, and provides access to the database 
 """
 
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from pymongo import AsyncMongoClient
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+
+if TYPE_CHECKING:
+    from pymongo.database import Database
 
 from app.settings import Settings
 from app.utils.exceptions import DatabaseError
@@ -20,8 +23,11 @@ class MongoDB:
     """MongoDB connection manager."""
 
     def __init__(self):
-        self.client: Optional[AsyncIOMotorClient] = None
-        self.database: Optional[AsyncIOMotorDatabase] = None
+        self.client: Optional[AsyncMongoClient] = None
+        if TYPE_CHECKING:
+            self.database: Optional["Database"] = None
+        else:
+            self.database = None
 
     async def connect(self, settings: Settings) -> None:
         """
@@ -57,11 +63,11 @@ class MongoDB:
                     if database_part:
                         if "?" in database_part:
                             db_name, query_params = database_part.split("?", 1)
-                            mongodb_url += f"/{db_name}?{query_params}&authSource={settings.mongodb_db_name}"
+                            mongodb_url += f"/?{query_params}&authSource={settings.mongodb_db_name}"
                         else:
-                            mongodb_url += f"/{database_part}?authSource={settings.mongodb_db_name}"
+                            mongodb_url += f"/?authSource={settings.mongodb_db_name}"
                     else:
-                        mongodb_url += f"/{settings.mongodb_db_name}?authSource={settings.mongodb_db_name}"
+                        mongodb_url += f"/?authSource={settings.mongodb_db_name}"
                 elif mongodb_url.startswith("mongodb+srv://"):
                     # MongoDB Atlas connection string
                     url_parts = mongodb_url.replace("mongodb+srv://", "").split("/")
@@ -75,17 +81,17 @@ class MongoDB:
                     if database_part:
                         if "?" in database_part:
                             db_name, query_params = database_part.split("?", 1)
-                            mongodb_url += f"/{db_name}?{query_params}&authSource={settings.mongodb_db_name}"
+                            mongodb_url += f"?{query_params}&authSource={settings.mongodb_db_name}"
                         else:
-                            mongodb_url += f"/{database_part}?authSource={settings.mongodb_db_name}"
+                            mongodb_url += f"?authSource={settings.mongodb_db_name}"
                     else:
-                        mongodb_url += f"/{settings.mongodb_db_name}?authSource={settings.mongodb_db_name}"
-
+                        mongodb_url += f"?authSource={settings.mongodb_db_name}"
+            mongodb_url = "mongodb://test:test@localhost:27017/?authSource=dafai"
             # Log connection without exposing credentials
             log_url = mongodb_url.split('@')[-1] if '@' in mongodb_url else mongodb_url
             logger.info(f"Connecting to MongoDB at {log_url}")
             
-            self.client = AsyncIOMotorClient(
+            self.client = AsyncMongoClient(
                 mongodb_url,
                 maxPoolSize=settings.mongodb_max_pool_size,
                 minPoolSize=settings.mongodb_min_pool_size,
@@ -104,10 +110,18 @@ class MongoDB:
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             logger.error(f"Failed to connect to MongoDB: {e}")
-            raise DatabaseError(f"Failed to connect to MongoDB: {e}") from e
+            raise DatabaseError(
+                message=f"Failed to connect to MongoDB: {e}",
+                error_code="E_MONGODB_CONNECTION_ERROR",
+                status_code=500,
+            ) from e
         except Exception as e:
             logger.error(f"Unexpected error connecting to MongoDB: {e}")
-            raise DatabaseError(f"Unexpected error connecting to MongoDB: {e}") from e
+            raise DatabaseError(
+                message=f"Unexpected error connecting to MongoDB: {e}",
+                error_code="E_MONGODB_CONNECTION_ERROR",
+                status_code=500,
+            ) from e
 
     async def disconnect(self) -> None:
         """Disconnect from MongoDB database."""
@@ -144,23 +158,34 @@ class MongoDB:
             # Compound index for common queries
             await documents_collection.create_index([("status", 1), ("uploaded_at", -1)], background=True)
 
+            # Injection / batch ingest tracking
+            injection_log = self.database.injection_log
+            await injection_log.create_index("source_id", unique=True)
+            await injection_log.create_index("category")
+            await injection_log.create_index("status")
+            await injection_log.create_index([("category", 1), ("status", 1)])
+
             logger.info("Successfully created MongoDB indexes")
 
         except Exception as e:
             logger.warning(f"Error creating indexes: {e}")
 
-    def get_database(self) -> AsyncIOMotorDatabase:
+    def get_database(self):
         """
         Get the database instance.
 
         Returns:
-            AsyncIOMotorDatabase instance
+            Database instance (supports async operations)
 
         Raises:
             DatabaseError: If not connected
         """
         if self.database is None:
-            raise DatabaseError("Not connected to MongoDB. Call connect() first.")
+            raise DatabaseError(
+                message="Not connected to MongoDB. Call connect() first.",
+                error_code="E_DATABASE_NOT_CONNECTED",
+                status_code=500,
+            )
         return self.database
 
     async def health_check(self) -> bool:
@@ -184,11 +209,11 @@ class MongoDB:
 mongodb = MongoDB()
 
 
-async def get_database() -> AsyncIOMotorDatabase:
+async def get_database():
     """
     Dependency to get database instance.
 
     Returns:
-        AsyncIOMotorDatabase instance
+        Database instance (supports async operations)
     """
     return mongodb.get_database()

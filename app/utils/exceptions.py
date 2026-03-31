@@ -1,7 +1,7 @@
 """
 Custom exceptions for the document parser application.
 
-All custom exceptions inherit from DocParserError for easy catching
+All custom exceptions inherit from dafaaiError for easy catching
 and handling throughout the application.
 """
 
@@ -44,7 +44,7 @@ class AppException(Exception):
         }
 
 
-class DocParserError(AppException):
+class dafaaiError(AppException):
     """Base exception for all application errors."""
 
     def __init__(
@@ -57,7 +57,7 @@ class DocParserError(AppException):
         super().__init__(message, error_code, status_code, details)
 
 
-class ValidationError(DocParserError):
+class ValidationError(dafaaiError):
     """Raised when file validation fails."""
 
     def __init__(
@@ -70,7 +70,7 @@ class ValidationError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class ParsingError(DocParserError):
+class ParsingError(dafaaiError):
     """Raised when document parsing fails."""
 
     def __init__(
@@ -83,7 +83,7 @@ class ParsingError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class UnsupportedFileTypeError(DocParserError):
+class UnsupportedFileTypeError(dafaaiError):
     """Raised when file type is not supported."""
 
     def __init__(
@@ -96,7 +96,7 @@ class UnsupportedFileTypeError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class StorageError(DocParserError):
+class StorageError(dafaaiError):
     """Raised when file storage operations fail."""
 
     def __init__(
@@ -109,13 +109,20 @@ class StorageError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class DatabaseError(DocParserError):
+class DatabaseError(dafaaiError):
     """Raised when database operations fail."""
 
-    pass
+    def __init__(
+        self,
+        message: str,
+        error_code: str = "E_DATABASE_ERROR",
+        status_code: int = 500,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(message, error_code, status_code, details)
 
 
-class OCRError(DocParserError):
+class OCRError(dafaaiError):
     """Raised when OCR processing fails."""
 
     def __init__(
@@ -128,7 +135,7 @@ class OCRError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class AuthenticationError(DocParserError):
+class AuthenticationError(dafaaiError):
     """Raised when authentication fails."""
 
     def __init__(
@@ -141,7 +148,7 @@ class AuthenticationError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class ConfigurationError(DocParserError):
+class ConfigurationError(dafaaiError):
     """Raised when configuration is invalid or missing."""
 
     def __init__(
@@ -154,7 +161,7 @@ class ConfigurationError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class FileDetectionError(DocParserError):
+class FileDetectionError(dafaaiError):
     """Raised when file type cannot be determined."""
 
     def __init__(
@@ -167,7 +174,7 @@ class FileDetectionError(DocParserError):
         super().__init__(message, error_code, status_code, details)
 
 
-class AlgorithmNotFoundError(DocParserError):
+class AlgorithmNotFoundError(dafaaiError):
     """Raised when a parsing algorithm is not found."""
 
     def __init__(
@@ -189,7 +196,7 @@ class AlgorithmNotFoundError(DocParserError):
         )
 
 
-class ParserNotInitializedError(DocParserError):
+class ParserNotInitializedError(dafaaiError):
     """Raised when parser operations are attempted before initialization."""
 
     def __init__(

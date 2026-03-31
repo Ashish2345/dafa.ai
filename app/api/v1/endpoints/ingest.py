@@ -6,6 +6,7 @@ into the RAG system. It processes OCR output, converts to Markdown, chunks
 the document, and prepares it for vector storage.
 """
 
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -16,6 +17,7 @@ from app.config.request_mapping import RequestConfigBuilder
 from app.services.download import FileHandler
 from app.services.ingestion import IngestionService
 from app.services.parsers.factory import ParserFactory
+from app.services.pdf_storage import PDFStorageService
 from app.services.processing import ProcessingService
 from app.utils.exceptions import AppException
 from app.utils.security import get_api_key
@@ -101,9 +103,12 @@ async def ingest_document(
                 # Remove extension for cleaner act name extraction
                 document_name = Path(document_name).stem
             
+            # Generate a document_id upfront for consistent use
+            document_id = str(uuid.uuid4())
+            
             gathered_data = ingestion_service.gather_document_data(
                 parsed_response=parsed_response,
-                document_name=document_name,
+                document_name=document_name or document_id,
             )
 
             if gathered_data["status"] != "success":
@@ -113,8 +118,32 @@ async def ingest_document(
                     message=gathered_data.get("error", "Failed to gather document data"),
                 )
 
-            # Step 3: Process the document (processing - all transformations)
-            logger.debug("Step 3: Processing document")
+            # Step 3: Save PDF and convert to images (if PDF)
+            pdf_storage_result = None
+            if file_path.lower().endswith(".pdf"):
+                logger.debug("Step 3: Saving PDF and converting to images")
+                try:
+                    pdf_storage_service = PDFStorageService(dpi=300, quality=100)
+                    
+                    pdf_storage_result = await pdf_storage_service.save_pdf_and_images(
+                        pdf_path=file_path,
+                        document_id=document_id,
+                        filename=original_filename,
+                        metadata={
+                            "document_name": document_name,
+                            "file_type": "pdf",
+                        },
+                    )
+                    logger.info(
+                        f"Saved PDF and {pdf_storage_result['page_count']} images: "
+                        f"pdf_file_id={pdf_storage_result['pdf_file_id']}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to save PDF/images to MongoDB: {e}")
+                    # Continue processing even if storage fails
+
+            # Step 4: Process the document (processing - all transformations)
+            logger.debug("Step 4: Processing document")
             # Check if embeddings and vector storage should be enabled
             from app.settings import settings
             enable_embeddings = bool(getattr(settings, "openai_api_key", None))
@@ -132,8 +161,21 @@ async def ingest_document(
                 raw_ocr=gathered_data["raw_ocr"],
                 page_scalars=gathered_data["page_scalars"],
                 page_images=gathered_data["page_images"],
-                document_name=document_name,
+                document_name=document_name or document_id,
             )
+
+            # Ensure document_id is in the result
+            processing_result["document_id"] = document_id
+
+            # Add PDF storage information to response if available
+            if pdf_storage_result:
+                processing_result["pdf_storage"] = {
+                    "pdf_file_id": pdf_storage_result["pdf_file_id"],
+                    "image_file_ids": pdf_storage_result["image_file_ids"],
+                    "page_count": pdf_storage_result["page_count"],
+                    "download_pdf_url": f"/api/v1/files/pdf/{pdf_storage_result['pdf_file_id']}",
+                    "download_images_url": f"/api/v1/files/document/{document_id}/images",
+                }
 
             return processing_result
 

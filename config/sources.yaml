@@ -1,0 +1,61 @@
+# Document source definitions for batch injection (Nepal legal / regulatory corpora).
+# Law Commission uses GIWMS: /pages/list-volume-act/ → /category/{id}/ → giwmscdntwo.gov.np PDFs.
+
+sources:
+  acts_rules:
+    provider: lawcommission
+    base_url: "https://lawcommission.gov.np"
+    volume_list_path: "/pages/list-volume-act/"
+    # Optional: limit crawl for testing (integer)
+    max_categories: null
+    # Optional: only these GIWMS category IDs, e.g. [1767] for खण्ड ६ राजश्व
+    category_ids: null
+    enabled: true
+
+  finance_acts:
+    provider: finance_acts
+    base_url: "https://lawcommission.gov.np"
+    volume_list_path: "/pages/list-volume-act/"
+    # खण्ड ६: राजश्व तथा आर्थिक प्रशासन (tax / revenue / related finance acts)
+    category_ids: [1767]
+    # null = every PDF in those categories. Set strings to narrow, e.g. ["बजेट"] for budget-only names.
+    filename_keywords: null
+    max_categories: null
+    # Annual आर्थिक ऐन (yearly Finance Act): IRD lists them under /category/financeact/; PDFs are on GIWMS CDN.
+    ird_finance_base_url: "https://ird.gov.np"
+    ird_finance_category_paths:
+      - "/category/financeact/"
+    ird_finance_max_pages: 20
+    enabled: true
+
+  nrb:
+    provider: nrb
+    base_url: "https://www.nrb.org.np"
+    index_paths:
+      - "/contents/directives"
+      - "/contents/unified-directives"
+    enabled: true
+
+  ird:
+    provider: ird
+    base_url: "https://ird.gov.np"
+    index_paths:
+      - "/"
+      - "/notice"
+    enabled: true
+
+  gazette:
+    provider: gazette
+    base_url: "https://rajpatra.dop.gov.np"
+    index_paths:
+      - "/"
+    enabled: true
+
+  local:
+    provider: local
+    directories:
+      - path: "./data/documents"
+        category: "acts_rules"
+      - path: "./data/documents/finance_acts"
+        category: "finance_acts"
+    enabled: true
