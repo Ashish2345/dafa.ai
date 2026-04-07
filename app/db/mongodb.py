@@ -165,6 +165,18 @@ class MongoDB:
             await injection_log.create_index("status")
             await injection_log.create_index([("category", 1), ("status", 1)])
 
+            # Users collection indexes
+            users_collection = self.database.users
+            await users_collection.create_index("email", unique=True)
+            await users_collection.create_index("user_id", unique=True)
+
+            # PageIndex tree and content indexes
+            page_index_trees = self.database.page_index_trees
+            await page_index_trees.create_index("document_id", unique=True)
+
+            page_index_content = self.database.page_index_content
+            await page_index_content.create_index("document_id", unique=True)
+
             logger.info("Successfully created MongoDB indexes")
 
         except Exception as e:

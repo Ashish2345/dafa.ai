@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.services.vector_store import VectorStoreService
 from app.utils.exceptions import AppException
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 from loguru import logger
 from qdrant_client.http import models
 
@@ -40,7 +40,7 @@ class DocumentsResponse(BaseModel):
 @router.get("/collection/{collection_name}", response_model=DocumentsResponse, summary="Get documents in a collection")
 async def get_collection_documents(
     collection_name: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get all documents in a specific collection.

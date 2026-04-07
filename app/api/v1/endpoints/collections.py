@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from app.services.rag.collection_router import CollectionRouter
 from app.services.vector_store import VectorStoreService
 from app.utils.exceptions import AppException
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 from loguru import logger
 
 router = APIRouter(prefix="/collections", tags=["collections"])
@@ -46,7 +46,7 @@ class CollectionDetailsResponse(BaseModel):
 
 @router.get("", response_model=CollectionsResponse, summary="Get all collections")
 async def get_collections(
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get all collections (featured notebooks) from Qdrant.
@@ -146,7 +146,7 @@ async def get_collections(
 @router.get("/{collection_name}", response_model=CollectionDetailsResponse, summary="Get collection details")
 async def get_collection_details(
     collection_name: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get detailed information about a specific collection.

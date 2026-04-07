@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from loguru import logger
 
+from app.prompts.old_flow import collection_routing as collection_routing_prompts
 from app.services.llm import LLMService
 from app.services.vector_store import VectorStoreService
 
@@ -88,21 +89,8 @@ class CollectionRouter:
         act_names = [self._collection_to_act_name(col) for col in available_collections]
         act_list = "\n".join([f"- {act}" for act in act_names if act])
 
-        system_instruction = """You are a helpful assistant that analyzes finance-related queries to determine which finance acts are relevant.
-
-Given a user query and a list of available finance acts, identify which act(s) the query is most likely referring to.
-
-Return ONLY a comma-separated list of act names (as they appear in the list), nothing else.
-If the query could relate to multiple acts, include all relevant ones.
-If the query is general and could relate to any act, return "all".
-If no specific act is mentioned or relevant, return "all"."""
-
-        user_prompt = f"""Available Finance Acts:
-{act_list}
-
-User Query: {user_query}
-
-Which act(s) is this query about? Return only the act names separated by commas, or "all" if it's general."""
+        system_instruction, user_prompt_template = collection_routing_prompts.get_prompts()
+        user_prompt = user_prompt_template.format(act_list=act_list, user_query=user_query)
 
         try:
             response = self.llm_service.call(

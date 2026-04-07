@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # File Upload
     max_upload_size: int = Field(default=52428800, description="Max upload size in bytes (50MB)", ge=1024)
     allowed_extensions: List[str] = Field(
-        default=[".pdf", ".xlsx", ".xls", ".csv", ".png", ".jpg", ".jpeg"],
+        default=[".pdf", ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".tif", ".bmp", ".webp"],
         description="Allowed file extensions",
     )
     upload_dir: str = Field(default="./uploads", description="Upload directory for local storage")
@@ -83,9 +83,19 @@ class Settings(BaseSettings):
     ocr_dpi: int = Field(default=300, description="OCR DPI for image conversion", ge=150, le=600)
     ocr_provider: str = Field(default="google", description="Default OCR provider (google, aws, azure)")
 
-    # Security - API Keys
+    # Security - API Keys (legacy, kept for backward compat)
     api_keys: List[str] = Field(default=["1234"], description="Valid API keys for authentication")
     api_key_header: str = Field(default="X-API-Key", description="API key header name")
+
+    # Security - JWT
+    jwt_secret: str = Field(
+        default="change-me-in-production-minimum-32-characters-long",
+        description="Secret key for JWT signing",
+        min_length=32,
+    )
+    jwt_algorithm: str = Field(default="HS256", description="JWT signing algorithm")
+    access_token_expire_minutes: int = Field(default=30, description="Access token expiry in minutes", ge=1)
+    refresh_token_expire_days: int = Field(default=7, description="Refresh token expiry in days", ge=1)
 
     # Logging
     log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
@@ -153,6 +163,11 @@ class Settings(BaseSettings):
     # Feature Flags
     enable_metrics: bool = Field(default=False, description="Enable metrics collection")
     enable_tracing: bool = Field(default=False, description="Enable distributed tracing")
+    use_page_index: bool = Field(
+        default=True,
+        description="Use PageIndex (vectorless RAG) instead of traditional vector+BM25 retrieval. "
+        "Set to False to fall back to Qdrant+embeddings pipeline.",
+    )
 
     # Download Retry
     download_retry_attempts: int = Field(

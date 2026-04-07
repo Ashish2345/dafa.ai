@@ -20,7 +20,7 @@ from app.services.parsers.factory import ParserFactory
 from app.services.pdf_storage import PDFStorageService
 from app.services.processing import ProcessingService
 from app.utils.exceptions import AppException
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 from loguru import logger
 
 router = APIRouter(prefix="/ingest", tags=["ingestion"])
@@ -30,7 +30,7 @@ router = APIRouter(prefix="/ingest", tags=["ingestion"])
 async def ingest_document(
     file: Optional[UploadFile] = File(None),
     form_data: ParseFormData = Depends(ParseFormData.as_form()),
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Ingest and process a document for the RAG system.
@@ -85,8 +85,13 @@ async def ingest_document(
         )
         form_data.file_path = file_path
 
+        # Auto-set OCR language hints when document language is specified
+        form_dict = form_data.model_dump()
+        if form_data.language == "ne" and not form_data.ocr_languages:
+            form_dict["ocr_languages"] = ["ne"]
+
         # Create RequestConfig from form data
-        request_config = RequestConfigBuilder.from_form_data(form_data.model_dump())
+        request_config = RequestConfigBuilder.from_form_data(form_dict)
 
         try:
             # Step 1: Parse the document to get OCR output
@@ -155,6 +160,7 @@ async def ingest_document(
                 respect_sections=True,
                 generate_embeddings=enable_embeddings,
                 store_in_vector_db=enable_vector_db,
+                language=getattr(form_data, "language", "en"),
             )
 
             processing_result = processing_service.process_document(
@@ -166,6 +172,37 @@ async def ingest_document(
 
             # Ensure document_id is in the result
             processing_result["document_id"] = document_id
+
+            # Step 5: Build PageIndex tree (if enabled)
+            from app.settings import settings
+            if settings.use_page_index and processing_result.get("markdown"):
+                logger.debug("Step 5: Building PageIndex tree")
+                try:
+                    from app.db.mongodb import get_database
+                    from app.db.repositories.page_index_repository import PageIndexRepository
+                    from app.services.page_index.service import PageIndexService
+
+                    page_index_service = PageIndexService()
+                    language = getattr(form_data, "language", "en")
+                    tree = page_index_service.build_tree(
+                        markdown_content=processing_result["markdown"],
+                        language=language,
+                    )
+
+                    db = await get_database()
+                    pi_repo = PageIndexRepository(db)
+                    await pi_repo.save_tree(
+                        document_id=document_id,
+                        tree=tree,
+                        markdown=processing_result["markdown"],
+                        language=language,
+                    )
+                    processing_result["page_index_nodes"] = page_index_service._count_nodes(
+                        tree.get("nodes", [])
+                    )
+                    logger.info(f"PageIndex tree built and saved: {processing_result['page_index_nodes']} nodes")
+                except Exception as e:
+                    logger.warning(f"PageIndex tree build failed (non-fatal): {e}")
 
             # Add PDF storage information to response if available
             if pdf_storage_result:

@@ -266,14 +266,22 @@ class ChunkingService:
             r"(?=\n(?:Sub-section|Subsection|Sub-sec\.?)\s+\d+)",  # Sub-section 1
             r"(?=\n(?:Clause|Cl\.?)\s+\([a-z0-9]+\))",  # Clause (a), Clause (1)
             r"(?=\n(?:Sub-clause|Subclause)\s+\([a-z0-9]+\))",  # Sub-clause (i)
+            # Nepali / Devanagari section markers
+            r"(?=\n(?:दफा|उपदफा)\s+\d+)",          # दफा १२, उपदफा ३
+            r"(?=\n(?:अनुच्छेद)\s+\d+)",            # अनुच्छेद ५
+            r"(?=\n(?:खण्ड)\s+\([क-ज़ा-ह0-9]+\))",  # खण्ड (क)
         ]
-        
+
         # Chapter/Part patterns
         self.chapter_patterns = [
             r"(?=\n(?:Chapter|Ch\.?)\s+\d+)",
             r"(?=\n(?:Part|Pt\.?)\s+\d+)",
             r"(?=\n(?:Article|Art\.?)\s+\d+)",
             r"(?=\n(?:Schedule|Sch\.?)\s+\d+)",
+            # Nepali chapter / part markers
+            r"(?=\nपरिच्छेद\s+\d+)",   # परिच्छेद (Chapter)
+            r"(?=\nभाग\s+\d+)",         # भाग (Part)
+            r"(?=\nअध्याय\s+\d+)",      # अध्याय (Chapter)
         ]
         
         # Definition patterns (legal definitions often span multiple sentences)

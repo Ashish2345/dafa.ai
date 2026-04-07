@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from loguru import logger
 
+from app.prompts.new_flow import answer_synthesis as new_answer_synthesis_prompts
+from app.prompts.old_flow import answer_synthesis as old_answer_synthesis_prompts
 from app.services.embeddings import EmbeddingService
 from app.services.llm import LLMService
 from app.services.rag.collection_router import CollectionRouter
@@ -447,6 +449,108 @@ class RAGOrchestrator:
         )
         return result
 
+    async def async_query(
+        self,
+        user_query: str,
+        filter_conditions: Optional[Dict[str, Any]] = None,
+        use_llm: bool = True,
+        collection_name: Optional[str] = None,
+        language: str = "en",
+        db=None,
+    ) -> Dict[str, Any]:
+        """
+        PageIndex-powered async query (vectorless RAG).
+
+        Used when settings.use_page_index=True. Replaces embedding → Qdrant pipeline
+        with LLM-guided tree navigation.
+
+        Args:
+            user_query: User question
+            filter_conditions: Ignored (PageIndex uses act-level filtering)
+            use_llm: Whether to synthesize answer with LLM
+            collection_name: Optional act name to limit search scope
+            language: Document/query language ("en" | "ne")
+            db: MongoDB database instance
+
+        Returns:
+            Same dict structure as query() for API compatibility.
+        """
+        from app.services.retrieval.page_index_retriever import PageIndexRetriever
+
+        logger.info(f"PageIndex async_query: {user_query[:100]}...")
+
+        retriever = PageIndexRetriever(language=language)
+        chunks = await retriever.retrieve(
+            query=user_query,
+            collection_name=collection_name,
+            top_k=self.top_k,
+            db=db,
+        )
+
+        if not chunks:
+            return {
+                "query": user_query,
+                "chunks": [],
+                "answer": "No relevant sections found in the knowledge base for this query.",
+                "sources": [],
+                "status": "success",
+                "metadata": {"retrieval_method": "page_index"},
+                "warnings": ["No relevant sections found."],
+            }
+
+        answer = ""
+        if use_llm:
+            # Build context from PageIndex sections
+            context_parts = []
+            for idx, chunk in enumerate(chunks, 1):
+                act_name = chunk.get("metadata", {}).get("act_name", "Unknown Act")
+                node_id = chunk.get("nodeId", "")
+                title = chunk.get("title", "")
+                context_parts.append(
+                    f"[Section {idx}]\n"
+                    f"Act: {act_name}\n"
+                    f"Node: {node_id} — {title}\n"
+                    f"Content: {chunk.get('text', '')}\n"
+                )
+
+            context = "\n\n".join(context_parts)
+            act_name_for_prompt = chunks[0].get("metadata", {}).get("act_name", "Finance Act") if chunks else "Finance Act"
+
+            system_prompt, user_prompt_template = new_answer_synthesis_prompts.get_prompts(language)
+            user_prompt = user_prompt_template.format(
+                act_name=act_name_for_prompt,
+                sections=context,
+                query=user_query,
+            )
+
+            answer_result = self.llm_service.call(
+                prompt=user_prompt,
+                system_instruction=system_prompt,
+                temperature=0.2,
+                max_tokens=8192,
+            )
+            answer = answer_result if isinstance(answer_result, str) else answer_result[0]
+
+        sources = [
+            {
+                "nodeId": c.get("nodeId", ""),
+                "title": c.get("title", ""),
+                "act_name": c.get("metadata", {}).get("act_name", ""),
+                "document_id": c.get("metadata", {}).get("document_id", ""),
+            }
+            for c in chunks
+        ]
+
+        return {
+            "query": user_query,
+            "chunks": chunks,
+            "answer": answer,
+            "sources": sources,
+            "status": "success",
+            "metadata": {"retrieval_method": "page_index", "sections_retrieved": len(chunks)},
+            "warnings": [],
+        }
+
     def _synthesize_answer(
         self, query: str, chunks: List[Dict[str, Any]]
     ) -> Union[str, Tuple[str, Dict[str, Any]], Tuple[str, Dict[str, Any], Dict[str, Any]]]:
@@ -514,18 +618,9 @@ class RAGOrchestrator:
             context = "\n\n".join(context_parts)
 
         # Build prompt
-        system_instruction = """You are a helpful assistant that answers questions about finance acts and regulations.
-Use the provided context to answer the user's question accurately and concisely.
-If the context doesn't contain enough information to answer the question, say so.
-Always cite the relevant Act and Section numbers when possible."""
-
-        user_prompt = f"""Context from finance acts:
-
-{context}
-
-Question: {query}
-
-Please provide a clear and accurate answer based on the context above. Include relevant Act names and Section numbers when available."""
+        language = getattr(self, "language", "en")
+        system_instruction, user_prompt_template = old_answer_synthesis_prompts.get_prompts(language)
+        user_prompt = user_prompt_template.format(context=context, query=query)
         # Call LLM with metadata
         # Use higher max_tokens for detailed responses (tax calculations, etc.)
         # Gemini 2.5 Flash supports up to 8192 output tokens

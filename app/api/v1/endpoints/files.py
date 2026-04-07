@@ -12,7 +12,7 @@ from fastapi.responses import Response
 
 from app.services.pdf_storage import PDFStorageService
 from app.utils.exceptions import AppException
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/files", tags=["files"])
 @router.get("/pdf/{file_id}", summary="Download PDF file")
 async def download_pdf(
     file_id: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Download a PDF file from MongoDB GridFS.
@@ -62,7 +62,7 @@ async def download_pdf(
 @router.get("/image/{file_id}", summary="Download image file")
 async def download_image(
     file_id: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Download an image file from MongoDB GridFS.
@@ -102,7 +102,7 @@ async def download_image(
 @router.get("/document/{document_id}/images", summary="Get all images for a document")
 async def get_document_images(
     document_id: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get metadata for all images associated with a document.
@@ -138,7 +138,7 @@ async def get_document_images(
 async def download_page_image(
     document_id: str,
     page_number: int = Path(..., ge=1, description="Page number (1-indexed)"),
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Download a specific page image for a document.
@@ -196,7 +196,7 @@ async def download_page_image(
 @router.get("/document/{document_id}/pdf", summary="Download PDF by document ID")
 async def download_pdf_by_document(
     document_id: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Download PDF file for a document by document_id.
@@ -245,7 +245,7 @@ async def download_pdf_by_document(
 @router.get("/document/{document_id}/structure", summary="Get document file structure")
 async def get_document_structure(
     document_id: str,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Get complete file structure for a document including PDF and images.

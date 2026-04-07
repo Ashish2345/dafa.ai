@@ -17,12 +17,7 @@ class FileType(str, Enum):
     """Supported document file types."""
 
     PDF = "PDF"
-    EXCEL = "EXCEL"
-    CSV = "CSV"
     IMAGE = "IMAGE"
-    DOCX = "DOCX"
-    MARKDOWN = "MARKDOWN"
-    TEXT = "TEXT"
     UNKNOWN = "UNKNOWN"
 
 

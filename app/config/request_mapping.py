@@ -31,8 +31,6 @@ def build_param_registry() -> Dict[str, List[ConfigFieldMapping]]:
     """
     # Import here to avoid circular imports
     from app.config.config import (
-        DocxParserConfig,
-        ExcelParserConfig,
         ImageParserConfig,
         ParserConfig,
         PDFParserConfig,
@@ -45,8 +43,6 @@ def build_param_registry() -> Dict[str, List[ConfigFieldMapping]]:
     config_classes = [
         ParserConfig,
         PDFParserConfig,
-        ExcelParserConfig,
-        DocxParserConfig,
         ImageParserConfig,
         RequestConfig,
     ]
@@ -110,8 +106,6 @@ class RequestConfigBuilder:
         """
         # Import here to avoid circular imports
         from app.config.config import (
-            DocxParserConfig,
-            ExcelParserConfig,
             ImageParserConfig,
             PDFParserConfig,
             RequestConfig,
@@ -121,16 +115,12 @@ class RequestConfigBuilder:
 
         # Collect overrides for each config class
         pdf_overrides: Dict[str, Any] = {}
-        excel_overrides: Dict[str, Any] = {}
-        docx_overrides: Dict[str, Any] = {}
         image_overrides: Dict[str, Any] = {}
         request_overrides: Dict[str, Any] = {}
 
         # Map config classes to their override dicts
         config_to_overrides = {
             PDFParserConfig: pdf_overrides,
-            ExcelParserConfig: excel_overrides,
-            DocxParserConfig: docx_overrides,
             ImageParserConfig: image_overrides,
             RequestConfig: request_overrides,
         }
@@ -157,15 +147,11 @@ class RequestConfigBuilder:
 
         # Create configs with overrides
         pdf_config = PDFParserConfig(**pdf_overrides)
-        excel_config = ExcelParserConfig(**excel_overrides)
-        docx_config = DocxParserConfig(**docx_overrides)
         image_config = ImageParserConfig(**image_overrides)
 
         # Build RequestConfig with all parser configs and request-level attributes
         return RequestConfig(
             pdf_config=pdf_config,
-            excel_config=excel_config,
-            docx_config=docx_config,
             image_config=image_config,
             **request_overrides,
         )

@@ -51,7 +51,7 @@ class ErrorResponse(BaseModel):
 
 # --- ParsedResponse (from schema.json) ---
 
-FileTypeLiteral = Literal["pdf", "xlsx", "docx", "txt", "img"]
+FileTypeLiteral = Literal["pdf", "img"]
 
 EmbedTypeLiteral = Literal["figure", "chart", "signature", "stamp", "checkbox"]
 
@@ -99,7 +99,7 @@ class ParsedResponse(BaseModel):
 
     content: str = Field(..., description="Whole parsed text")
     raw_info: Optional[str] = Field(None, description="Raw data structure (e.g. OCR for PDF)")
-    file_type: FileTypeLiteral = Field(..., description="Document format (pdf, xlsx, docx, txt, img, email)")
+    file_type: FileTypeLiteral = Field(..., description="Document format (pdf, img)")
     file_url: Optional[str] = Field(None, description="Source file URL")
     file_metadata: Dict[str, Any] = Field(default_factory=dict, description="File metadata")
     parsing_type: ParsingType = Field(..., description="Parsing method used")

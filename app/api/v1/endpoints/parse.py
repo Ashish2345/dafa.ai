@@ -12,7 +12,7 @@ from app.config.request_mapping import RequestConfigBuilder
 from app.models.schemas import ParsedResponse
 from app.services.download import FileHandler
 from app.services.parsers.factory import ParserFactory
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 from app.utils.exceptions import AppException
 
 router = APIRouter(prefix="/parse", tags=["parse"])
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/parse", tags=["parse"])
 async def parse_document(
     file: Optional[UploadFile] = File( ),
     form_data: ParseFormData = Depends(ParseFormData.as_form()),
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Parse a document and return structured content.

@@ -25,8 +25,29 @@ class MetadataExtractor:
     - Chapters and parts
     """
 
-    def __init__(self):
-        """Initialize the metadata extractor."""
+    # Nepali (Devanagari) act name patterns — matches common act suffixes in Nepali
+    NEPALI_ACT_PATTERNS = [
+        r"[\u0900-\u097F\s]+ऐन",           # "X ऐन" (Act)
+        r"[\u0900-\u097F\s]+नियमावली",     # "X नियमावली" (Regulation)
+        r"[\u0900-\u097F\s]+विनियम",       # "X विनियम" (Bylaw)
+        r"[\u0900-\u097F\s]+अध्यादेश",    # "X अध्यादेश" (Ordinance)
+    ]
+
+    # Nepali section/clause number patterns
+    NEPALI_SECTION_PATTERN = r"(?:दफा|उपदफा|अनुच्छेद|खण्ड|परिच्छेद)\s*(\d+)"
+
+    # Nepali chapter patterns
+    NEPALI_CHAPTER_PATTERN = r"(?:परिच्छेद|भाग|अध्याय)\s*(\d+)"
+
+    def __init__(self, language: str = "en"):
+        """
+        Initialize the metadata extractor.
+
+        Args:
+            language: Document language — "en" (English) or "ne" (Nepali/Devanagari).
+        """
+        self.language = language
+
         # Common finance act patterns (expanded list)
         self.act_patterns = [
             r"(?:Income\s+Tax\s+Act|Income\s+Tax)",
@@ -47,7 +68,7 @@ class MetadataExtractor:
         # Section number patterns
         self.section_pattern = r"(?:Section|Sec\.?|§)\s*(\d+[A-Z]?)"
 
-        # Year patterns (Nepali year 2070-2090, English year 2010-2030)
+        # Year patterns (Nepali BS year 2070-2090, English AD year 2010-2030)
         self.year_pattern = r"\b(?:20[0-9]{2}|20[6-9][0-9])\b"
 
     def extract_metadata(
@@ -128,6 +149,13 @@ class MetadataExtractor:
         lines = text.split("\n")[:50]
         first_part = "\n".join(lines)
 
+        # Use Nepali patterns for Nepali documents
+        if self.language == "ne":
+            for pattern in self.NEPALI_ACT_PATTERNS:
+                match = re.search(pattern, first_part)
+                if match:
+                    return match.group(0).strip()
+
         for pattern in self.act_patterns:
             match = re.search(pattern, first_part, re.IGNORECASE)
             if match:
@@ -177,7 +205,10 @@ class MetadataExtractor:
         Returns:
             List of section numbers (e.g., ["12", "13A", "14"])
         """
-        matches = re.findall(self.section_pattern, text, re.IGNORECASE)
+        if self.language == "ne":
+            matches = re.findall(self.NEPALI_SECTION_PATTERN, text)
+        else:
+            matches = re.findall(self.section_pattern, text, re.IGNORECASE)
         # Remove duplicates and sort
         unique_sections = sorted(set(matches), key=lambda x: (len(x), x))
         return unique_sections
@@ -194,9 +225,11 @@ class MetadataExtractor:
         """
         chapters = []
 
-        # Look for "Chapter X" or "Part X"
-        chapter_pattern = r"(?:Chapter|Part)\s+(\d+[A-Z]?)"
-        matches = re.findall(chapter_pattern, text, re.IGNORECASE)
+        if self.language == "ne":
+            matches = re.findall(self.NEPALI_CHAPTER_PATTERN, text)
+        else:
+            chapter_pattern = r"(?:Chapter|Part)\s+(\d+[A-Z]?)"
+            matches = re.findall(chapter_pattern, text, re.IGNORECASE)
         chapters.extend(matches)
 
         return sorted(set(chapters))

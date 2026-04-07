@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.services.rag import RAGOrchestrator
 from app.utils.exceptions import AppException
-from app.utils.security import get_api_key
+from app.utils.auth import get_current_user
 from loguru import logger
 from pydantic import BaseModel, Field
 
@@ -52,7 +52,7 @@ class QueryResponse(BaseModel):
 @router.post("", response_model=QueryResponse, summary="Ask a question about finance acts")
 async def ask_question(
     request: QueryRequest,
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Ask a question about finance acts using RAG.
@@ -72,16 +72,27 @@ async def ask_question(
     logger.info(f"Processing query: {request.query[:100]}...")
 
     try:
-        # Initialize orchestrator
+        from app.settings import settings as app_settings
         orchestrator = RAGOrchestrator(top_k=request.top_k)
 
-        # Process query
-        result = orchestrator.query(
-            user_query=request.query,
-            filter_conditions=request.filter_conditions,
-            use_llm=request.use_llm,
-            collection_name=request.collection_name,
-        )
+        # Route to PageIndex (vectorless) or traditional vector RAG
+        if app_settings.use_page_index:
+            from app.db.mongodb import get_database
+            db = await get_database()
+            result = await orchestrator.async_query(
+                user_query=request.query,
+                filter_conditions=request.filter_conditions,
+                use_llm=request.use_llm,
+                collection_name=request.collection_name,
+                db=db,
+            )
+        else:
+            result = orchestrator.query(
+                user_query=request.query,
+                filter_conditions=request.filter_conditions,
+                use_llm=request.use_llm,
+                collection_name=request.collection_name,
+            )
 
         # Check for errors
         if "error" in result:
@@ -135,7 +146,7 @@ async def ask_question_get(
     q: str = Query(..., description="User query/question", min_length=1),
     top_k: int = Query(default=5, description="Number of top chunks", ge=1, le=20),
     use_llm: bool = Query(default=True, description="Use LLM for synthesis"),
-    api_key: str = Depends(get_api_key),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Ask a question using GET method (convenience endpoint).

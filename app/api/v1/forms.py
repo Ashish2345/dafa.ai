@@ -30,6 +30,10 @@ class ParseFormData(BaseModel):
     extract_metadata: Optional[bool] = Field(None, description="Extract document metadata")
     extract_tables: Optional[bool] = Field(None, description="Extract tables from document")
 
+    # Document language
+    language: str = Field("en", description="Document language: 'en' (English) or 'ne' (Nepali/Devanagari). "
+                          "Controls OCR language hints, metadata pattern matching, and section detection.")
+
     # OCR params
     ocr_enabled: Optional[bool] = Field(None, description="Enable OCR for scanned PDFs")
     ocr_provider: Optional[str] = Field(None, description="OCR provider (google, aws, azure)")
@@ -41,16 +45,6 @@ class ParseFormData(BaseModel):
     # Image-specific params
     orientation_correction: Optional[bool] = Field(None, description="Auto-detect and correct image orientation")
     jpeg_quality: Optional[int] = Field(None, description="JPEG quality for image compression (1-100)")
-
-    # Excel-specific params
-    sheet_names: Optional[List[str]] = Field(None, description="Excel sheets to parse (None = all)")
-    include_formulas: Optional[bool] = Field(None, description="Include Excel formula text")
-    date_format: Optional[str] = Field(None, description="Date format for Excel cells")
-
-    # Docx-specific params
-    extract_styles: Optional[bool] = Field(None, description="Extract DOCX style information")
-    extract_comments: Optional[bool] = Field(None, description="Extract DOCX document comments")
-    preserve_formatting: Optional[bool] = Field(None, description="Preserve DOCX text formatting")
 
     @classmethod
     def as_form(cls):

@@ -5,12 +5,15 @@ Aggregates all v1 endpoint routers.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import ask, collections, documents, files, health, ingest, parse
+from app.api.v1.endpoints import ask, auth, collections, documents, files, health, ingest, parse
 
 api_router = APIRouter()
 
-# Include all endpoint routers
+# Public routes (no auth required)
 api_router.include_router(health.router)
+api_router.include_router(auth.router)
+
+# Protected routes
 api_router.include_router(parse.router)
 api_router.include_router(ingest.router)
 api_router.include_router(ask.router)

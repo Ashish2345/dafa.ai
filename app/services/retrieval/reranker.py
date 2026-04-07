@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
+from app.prompts.old_flow import reranking as reranking_prompts
+
 
 class Reranker:
     """
@@ -191,17 +193,8 @@ class LLMReranker:
 
             chunks_text = "\n\n".join(chunk_texts)
 
-            system_instruction = """You are a relevance scorer for finance act documents.
-Given a user query and a list of document chunks, score each chunk's relevance to the query.
-Return ONLY a JSON array of scores (numbers between 0.0 and 1.0), one score per chunk, in order.
-Example: [0.9, 0.7, 0.5, 0.3, 0.1]"""
-
-            user_prompt = f"""User Query: {query}
-
-Document Chunks:
-{chunks_text}
-
-Score each chunk's relevance to the query. Return ONLY a JSON array of scores."""
+            system_instruction, user_prompt_template = reranking_prompts.get_prompts()
+            user_prompt = user_prompt_template.format(query=query, chunks_text=chunks_text)
 
             # Call LLM
             response = self.llm_service.call(

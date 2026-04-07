@@ -22,16 +22,6 @@ class RequestParam(StrEnum):
     DPI = "dpi"
     EXTRACT_IMAGES = "extract_images"
 
-    # Excel parser params
-    SHEET_NAMES = "sheet_names"
-    INCLUDE_FORMULAS = "include_formulas"
-    DATE_FORMAT = "date_format"
-
-    # Docx parser params
-    EXTRACT_STYLES = "extract_styles"
-    EXTRACT_COMMENTS = "extract_comments"
-    PRESERVE_FORMATTING = "preserve_formatting"
-
     # Image parser params
     JPEG_QUALITY = "jpeg_quality"
     ORIENTATION_CORRECTION = "orientation_correction"

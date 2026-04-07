@@ -5,8 +5,6 @@ Contains Pydantic configuration models for all document parsers.
 """
 
 from app.config.config import (
-    DocxParserConfig,
-    ExcelParserConfig,
     ImageParserConfig,
     ParserConfig,
     PDFParserConfig,
@@ -17,8 +15,6 @@ from app.config.request_mapping import RequestConfigBuilder, get_available_reque
 __all__ = [
     "ParserConfig",
     "PDFParserConfig",
-    "ExcelParserConfig",
-    "DocxParserConfig",
     "ImageParserConfig",
     "RequestConfig",
     "RequestConfigBuilder",

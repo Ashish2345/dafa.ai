@@ -36,6 +36,7 @@ class ProcessingService:
         respect_sections: bool = True,
         generate_embeddings: bool = False,
         store_in_vector_db: bool = False,
+        language: str = "en",
     ):
         """
         Initialize the processing service.
@@ -46,14 +47,16 @@ class ProcessingService:
             respect_sections: Whether to respect section boundaries when chunking
             generate_embeddings: Whether to generate embeddings for chunks
             store_in_vector_db: Whether to store chunks in vector DB
+            language: Document language — "en" (English) or "ne" (Nepali)
         """
+        self.language = language
         self.processor = DocumentProcessor()
         self.chunking_service = ChunkingService(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             respect_sections=respect_sections,
         )
-        self.metadata_extractor = MetadataExtractor()
+        self.metadata_extractor = MetadataExtractor(language=language)
         
         # Optional: Embeddings and Vector DB
         self.generate_embeddings = generate_embeddings

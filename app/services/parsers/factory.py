@@ -10,8 +10,6 @@ from typing import Type, Union
 from loguru import logger
 
 from app.config.config import (
-    DocxParserConfig,
-    ExcelParserConfig,
     ImageParserConfig,
     ParserConfig,
     PDFParserConfig,
@@ -20,8 +18,6 @@ from app.config.config import (
 from app.models.enums import FileType
 from app.models.schemas import ParsedResponse
 from app.services.parsers.base import Parser
-from app.services.parsers.docx.parser import DocxParser
-from app.services.parsers.excel.parser import ExcelParser
 from app.services.parsers.image.parser import ImageParser
 from app.services.parsers.pdf.parser import PDFParser
 from app.utils.exceptions import ParserNotInitializedError
@@ -29,9 +25,6 @@ from app.utils.exceptions import ParserNotInitializedError
 # Mapping of file extensions to FileType
 EXTENSION_TO_FILE_TYPE: dict[str, FileType] = {
     ".pdf": FileType.PDF,
-    ".xlsx": FileType.EXCEL,
-    ".xls": FileType.EXCEL,
-    ".docx": FileType.DOCX,
     # Image formats
     ".png": FileType.IMAGE,
     ".jpg": FileType.IMAGE,
@@ -46,16 +39,12 @@ EXTENSION_TO_FILE_TYPE: dict[str, FileType] = {
 # Mapping of FileType to parser class
 FILE_TYPE_TO_PARSER: dict[FileType, Type[Parser]] = {
     FileType.PDF: PDFParser,
-    FileType.EXCEL: ExcelParser,
-    FileType.DOCX: DocxParser,
     FileType.IMAGE: ImageParser,
 }
 
 # Mapping of FileType to default config class
 FILE_TYPE_TO_CONFIG: dict[FileType, Type[ParserConfig]] = {
     FileType.PDF: PDFParserConfig,
-    FileType.EXCEL: ExcelParserConfig,
-    FileType.DOCX: DocxParserConfig,
     FileType.IMAGE: ImageParserConfig,
 }
 
@@ -163,8 +152,6 @@ class ParserFactory:
         """
         config_mapping = {
             FileType.PDF: self.request_config.pdf_config,
-            FileType.EXCEL: self.request_config.excel_config,
-            FileType.DOCX: self.request_config.docx_config,
             FileType.IMAGE: self.request_config.image_config,
         }
         return config_mapping.get(file_type, ParserConfig())
