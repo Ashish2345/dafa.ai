@@ -1,22 +1,17 @@
 """
 Main router for API v1 endpoints.
-
-Aggregates all v1 endpoint routers.
+4 route groups: health, auth, documents, query.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import ask, auth, collections, documents, files, health, ingest, parse
+from app.api.v1.endpoints import auth, documents, health, query
 
 api_router = APIRouter()
 
-# Public routes (no auth required)
+# Public routes
 api_router.include_router(health.router)
 api_router.include_router(auth.router)
 
 # Protected routes
-api_router.include_router(parse.router)
-api_router.include_router(ingest.router)
-api_router.include_router(ask.router)
-api_router.include_router(collections.router)
 api_router.include_router(documents.router)
-api_router.include_router(files.router)
+api_router.include_router(query.router)

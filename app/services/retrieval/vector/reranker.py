@@ -9,7 +9,10 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
-from app.prompts.old_flow import reranking as reranking_prompts
+try:
+    from app.prompts.old_flow import reranking as reranking_prompts
+except ImportError:
+    reranking_prompts = None  # LLMReranker is unused; prompt module was removed
 
 
 class Reranker:

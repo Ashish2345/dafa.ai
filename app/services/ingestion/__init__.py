@@ -1,17 +1,5 @@
-"""
-Document Ingestion Service
+"""Document ingestion — parse, process, store."""
 
-ONLY gathers/collects data from parsed documents.
-Does NOT perform processing - that's handled by ProcessingService.
+from app.services.ingestion.pipeline import IngestionPipeline
 
-This service is responsible for:
-- Collecting OCR data from parsed responses
-- Gathering page images and metadata
-- Preparing raw data for processing
-"""
-
-from .service import IngestionService
-
-__all__ = [
-    "IngestionService",
-]
+__all__ = ["IngestionPipeline"]

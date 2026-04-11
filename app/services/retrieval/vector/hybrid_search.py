@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from loguru import logger
 
-from app.services.retrieval.bm25_search import BM25SearchService
-from app.services.vector_store import VectorStoreService
+from app.services.retrieval.vector.bm25_search import BM25SearchService
+from app.services.retrieval.vector.vector_store import VectorStoreService
 
 
 class HybridSearchService:

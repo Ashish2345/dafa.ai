@@ -52,3 +52,10 @@ class OCRProvider(str, Enum):
     GOOGLE = "google"
     AWS = "aws"
     AZURE = "azure"
+
+
+class RetrievalStrategyType(str, Enum):
+    """Retrieval strategy for RAG queries."""
+
+    PAGE_INDEX = "page_index"
+    VECTOR = "vector"

@@ -351,3 +351,59 @@ class LLMService:
         except Exception as e:
             logger.error(f"Error calling LLM with messages: {e}")
             raise
+
+    def synthesize(
+        self,
+        query: str,
+        chunks: list,
+        language: str = "en",
+    ) -> str:
+        """
+        Synthesize an answer from retrieved chunks.
+
+        Args:
+            query: User question.
+            chunks: List of RetrievedChunk objects.
+            language: Answer language.
+
+        Returns:
+            Synthesized answer text.
+        """
+        from app.prompts.new_flow import answer_synthesis as answer_prompts
+
+        context_parts = []
+        for idx, chunk in enumerate(chunks, 1):
+            source = chunk.source if hasattr(chunk, "source") else chunk.get("source", {})
+            doc_name = source.get("document_name", "Unknown")
+            section = source.get("section", "")
+            node_id = source.get("node_id", "")
+            text = chunk.text if hasattr(chunk, "text") else chunk.get("text", "")
+
+            context_parts.append(
+                f"[Section {idx}]\n"
+                f"Act: {doc_name}\n"
+                f"Node: {node_id} — {section}\n"
+                f"Content: {text}\n"
+            )
+
+        context = "\n\n".join(context_parts)
+        act_name = "Finance Act"
+        if chunks:
+            first_source = chunks[0].source if hasattr(chunks[0], "source") else chunks[0].get("source", {})
+            act_name = first_source.get("document_name", "Finance Act")
+
+        system_prompt, user_prompt_template = answer_prompts.get_prompts(language)
+        user_prompt = user_prompt_template.format(
+            act_name=act_name,
+            sections=context,
+            query=query,
+        )
+
+        result = self.call(
+            prompt=user_prompt,
+            system_instruction=system_prompt,
+            temperature=0.2,
+            max_tokens=8192,
+        )
+
+        return result if isinstance(result, str) else result[0]

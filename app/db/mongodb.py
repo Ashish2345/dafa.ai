@@ -86,7 +86,6 @@ class MongoDB:
                             mongodb_url += f"?authSource={settings.mongodb_db_name}"
                     else:
                         mongodb_url += f"?authSource={settings.mongodb_db_name}"
-            mongodb_url = "mongodb://test:test@localhost:27017/?authSource=dafai"
             # Log connection without exposing credentials
             log_url = mongodb_url.split('@')[-1] if '@' in mongodb_url else mongodb_url
             logger.info(f"Connecting to MongoDB at {log_url}")

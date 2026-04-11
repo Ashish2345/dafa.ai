@@ -9,7 +9,7 @@ from typing import List, Optional
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.models.enums import Environment, StorageBackend
+from app.models.enums import Environment, StorageBackend, RetrievalStrategyType
 
 
 class Settings(BaseSettings):
@@ -135,12 +135,6 @@ class Settings(BaseSettings):
     rerank_retrieve_k: int = Field(
         default=20, description="Number of chunks to retrieve before re-ranking", ge=1, le=50
     )
-    rerank_use_llm: bool = Field(
-        default=False,
-        description="Use LLM-based re-ranking for critical queries. DISABLED by default due to higher cost. "
-        "Only enable if you need maximum accuracy for complex queries.",
-    )
-
     # Metadata Enhancement
     metadata_enhancement_enabled: bool = Field(
         default=True, description="Enable metadata-based filtering and boosting for retrieval"
@@ -163,10 +157,10 @@ class Settings(BaseSettings):
     # Feature Flags
     enable_metrics: bool = Field(default=False, description="Enable metrics collection")
     enable_tracing: bool = Field(default=False, description="Enable distributed tracing")
-    use_page_index: bool = Field(
-        default=True,
-        description="Use PageIndex (vectorless RAG) instead of traditional vector+BM25 retrieval. "
-        "Set to False to fall back to Qdrant+embeddings pipeline.",
+    default_retrieval_strategy: RetrievalStrategyType = Field(
+        default=RetrievalStrategyType.PAGE_INDEX,
+        description="Default retrieval strategy: 'page_index' (vectorless RAG) or 'vector' (Qdrant+embeddings). "
+        "Can be overridden per-request.",
     )
 
     # Download Retry
