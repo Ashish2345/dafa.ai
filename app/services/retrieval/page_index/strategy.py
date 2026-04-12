@@ -4,7 +4,8 @@ PageIndex retrieval strategy — vectorless RAG.
 Implements RetrievalStrategy using LLM-guided hierarchical tree navigation.
 """
 
-from typing import Any
+import asyncio
+from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
 
@@ -37,13 +38,15 @@ class PageIndexStrategy(RetrievalStrategy):
         filter_conditions: dict[str, Any] | None = None,
         collection_name: str | None = None,
     ) -> list[RetrievedChunk]:
-        document_ids = await self.repo.list_document_ids()
-        if not document_ids:
-            logger.warning("No PageIndex trees found")
-            return []
-
-        if collection_name:
-            document_ids = await self._filter_by_collection(document_ids, collection_name)
+        if filter_conditions and "document_id" in filter_conditions:
+            document_ids = [filter_conditions["document_id"]]
+        else:
+            document_ids = await self.repo.list_document_ids()
+            if not document_ids:
+                logger.warning("No PageIndex trees found")
+                return []
+            if collection_name:
+                document_ids = await self._filter_by_collection(document_ids, collection_name)
 
         all_chunks: list[RetrievedChunk] = []
 
@@ -57,7 +60,8 @@ class PageIndexStrategy(RetrievalStrategy):
             language = tree_doc.get("language", "en")
             act_name = tree.get("document_title", doc_id)
 
-            sections = self.section_retriever.retrieve(
+            sections = await asyncio.to_thread(
+                self.section_retriever.retrieve,
                 query=query,
                 tree=tree,
                 markdown_content=markdown,
@@ -66,15 +70,18 @@ class PageIndexStrategy(RetrievalStrategy):
             )
 
             for idx, section in enumerate(sections):
+                page_range = section.get("page_range", [])
                 all_chunks.append(
                     RetrievedChunk(
                         text=section["text"],
                         source={
                             "document_name": act_name,
                             "document_id": doc_id,
-                            "page_range": section.get("page_range", []),
+                            "page_range": page_range,
+                            "page": page_range[0] if page_range else None,
                             "section": section.get("title", ""),
                             "node_id": section["nodeId"],
+                            "node_int_id": section.get("int_id"),
                         },
                         score=1.0 - (idx * 0.1),
                         metadata={
@@ -94,18 +101,59 @@ class PageIndexStrategy(RetrievalStrategy):
         document_id: str,
         markdown: str,
         metadata: dict[str, Any],
+        on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
+        page_bbox_map: list[dict] | None = None,
+        image_dimensions: dict | None = None,
     ) -> None:
         language = metadata.get("language", "en")
         logger.info(f"PageIndex ingesting document_id={document_id}")
 
-        tree = self.tree_builder.build(markdown, language=language)
+        async def _notify(msg: str) -> None:
+            logger.info(f"[{document_id[:8]}] {msg}")
+            if on_progress:
+                try:
+                    await on_progress(msg)
+                except Exception as e:
+                    logger.warning(f"Progress callback failed (non-fatal): {e}")
+
+        # Split here so we can report async progress between chunks
+        chunks = self.tree_builder.split_chunks(markdown)
+        total = len(chunks)
+
+        subtrees = []
+        for i, chunk in enumerate(chunks, 1):
+            await _notify(f"Building index tree: chunk {i}/{total} ({len(chunk):,} chars)...")
+            # Run the blocking LLM call in a thread pool so the event loop
+            # stays alive for MongoDB keepalives during the 1-2 min API call.
+            subtree = await asyncio.to_thread(self.tree_builder.build_chunk, chunk, language)
+            subtrees.append(subtree)
+
+        if total == 1:
+            tree = subtrees[0]
+        else:
+            tree = self.tree_builder._merge_trees(subtrees, language)
+
+        tree["language"] = language
+        self.tree_builder._attach_char_offsets(tree.get("nodes", []), markdown)
+        TreeBuilder._assign_node_ids(tree["nodes"])
+        logger.info(f"[{document_id[:8]}] page_bbox_map received: {len(page_bbox_map) if page_bbox_map else 'None'} entries")
+        if page_bbox_map:
+            TreeBuilder._attach_page_bboxes(tree["nodes"], page_bbox_map)
+            # Log first node's page_bboxes to verify
+            if tree["nodes"]:
+                first = tree["nodes"][0]
+                logger.info(f"[{document_id[:8]}] First node page_bboxes: {first.get('page_bboxes', 'MISSING')}")
+
         await self.repo.save_tree(
             document_id=document_id,
             tree=tree,
             markdown=markdown,
             language=language,
+            image_dimensions=image_dimensions,
         )
-        logger.info(f"PageIndex tree saved: {self.tree_builder._count_nodes(tree.get('nodes', []))} nodes")
+        node_count = self.tree_builder._count_nodes(tree.get("nodes", []))
+        logger.info(f"PageIndex tree saved: {node_count} nodes")
+        await _notify(f"PageIndex tree saved ({node_count} nodes)")
 
     async def _filter_by_collection(self, document_ids: list[str], collection_name: str) -> list[str]:
         matched = []

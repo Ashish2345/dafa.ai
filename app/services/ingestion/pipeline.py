@@ -6,7 +6,7 @@ delegates storage to whichever RetrievalStrategy is selected.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
 
@@ -37,17 +37,32 @@ class IngestionPipeline:
         document_id: str,
         strategy: RetrievalStrategy,
         language: str = "en",
+        on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> dict[str, Any]:
-        """Run the full ingestion pipeline."""
+        """Run the full ingestion pipeline.
+
+        Args:
+            on_progress: Optional async callback called with a human-readable step
+                         description at each stage. Use this to persist live status.
+        """
         logger.info(f"Ingesting document: {filename} (id={document_id})")
+
+        async def _step(msg: str) -> None:
+            logger.info(f"[{document_id[:8]}] {msg}")
+            if on_progress:
+                try:
+                    await on_progress(msg)
+                except Exception as _prog_err:
+                    # Status update failures must never abort the ingestion
+                    logger.warning(f"[{document_id[:8]}] Progress update failed (non-fatal): {_prog_err}")
 
         try:
             # Step 1: Parse document (OCR)
-            logger.debug("Step 1: Parsing document")
+            await _step("Parsing document (OCR)...")
             parsed = await self.parser_factory.parse(str(file_path))
 
             # Step 2: Gather raw data and convert to Markdown
-            logger.debug("Step 2: Gathering data and converting to Markdown")
+            await _step("Converting pages to Markdown...")
             from app.services.ingestion.service import IngestionService
             from app.services.ingestion.processing import DocumentProcessor
 
@@ -73,6 +88,17 @@ class IngestionPipeline:
                 page_images=gathered.get("page_images", []),
             )
             markdown = markdown_result.get("markdown", "")
+            page_bbox_map = markdown_result.get("page_bbox_map", [])
+            logger.info(f"[{document_id[:8]}] page_bbox_map has {len(page_bbox_map)} entries"
+                        + (f", first: page={page_bbox_map[0]['page']}, bbox={page_bbox_map[0]['bbox']}" if page_bbox_map else ""))
+
+            image_dimensions = None
+            if gathered.get("page_scalars") and len(gathered["page_scalars"]) > 0:
+                first_page = gathered["page_scalars"][0]
+                image_dimensions = {
+                    "width": first_page.get("width", 0),
+                    "height": first_page.get("height", 0),
+                }
 
             if not markdown:
                 return {
@@ -82,7 +108,7 @@ class IngestionPipeline:
                 }
 
             # Step 3: Extract metadata
-            logger.debug("Step 3: Extracting metadata")
+            await _step("Extracting metadata...")
             from app.services.ingestion.processing import MetadataExtractor
 
             extractor = self.metadata_extractor or MetadataExtractor(language=language)
@@ -90,19 +116,42 @@ class IngestionPipeline:
             metadata["language"] = language
             metadata["document_name"] = document_name
 
-            # Step 4: Store original PDF in GridFS
+            # Step 4: Store original PDF and page images in GridFS
             if self.file_storage and str(file_path).lower().endswith(".pdf"):
-                logger.debug("Step 4: Saving PDF to GridFS")
+                await _step("Saving PDF and page images to storage...")
                 try:
                     await self.file_storage.save_pdf(str(file_path), document_id, filename)
+                    # Convert PDF pages to images using PyMuPDF and save to GridFS
+                    import fitz
+                    doc = fitz.open(str(file_path))
+                    scale = 150 / 72  # 150 DPI
+                    mat = fitz.Matrix(scale, scale)
+                    for page_num in range(len(doc)):
+                        pix = doc[page_num].get_pixmap(matrix=mat)
+                        img_bytes = pix.tobytes("jpeg")
+                        await self.file_storage.save_image(
+                            image_data=img_bytes,
+                            document_id=document_id,
+                            page_number=page_num + 1,
+                        )
+                    logger.info(f"Saved {len(doc)} page images for {document_id}")
+                    doc.close()
                 except Exception as e:
-                    logger.warning(f"Failed to save PDF: {e}")
+                    logger.warning(f"Failed to save PDF/images: {e}")
 
-            # Step 5: Strategy-specific storage
-            logger.debug("Step 5: Strategy ingestion")
-            await strategy.ingest(document_id, markdown, metadata)
+            # Step 5: Strategy-specific storage (passes on_progress so chunked
+            # strategies can report per-chunk status)
+            await strategy.ingest(
+                document_id,
+                markdown,
+                metadata,
+                on_progress=on_progress,
+                page_bbox_map=page_bbox_map,
+                image_dimensions=image_dimensions,
+            )
 
             # Step 6: Record in document repository
+            await _step("Saving document record...")
             if self.document_repo:
                 await self.document_repo.save(
                     document_id=document_id,

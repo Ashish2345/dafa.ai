@@ -14,6 +14,42 @@ class DocumentRepository:
     def __init__(self, database):
         self.collection = database.documents
 
+    async def save_initial(
+        self, document_id: str, filename: str, category: str | None = None, title: str | None = None,
+    ) -> None:
+        """Create a stub record immediately so callers can poll status."""
+        now = datetime.now(timezone.utc)
+        patch: dict[str, Any] = {
+            "document_id": document_id,
+            "filename": filename,
+            "title": title or filename,
+            "status": "processing",
+            "progress_step": "Queued",
+            "updated_at": now,
+        }
+        if category:
+            patch["category"] = category
+        await self.collection.update_one(
+            {"document_id": document_id},
+            {"$set": patch, "$setOnInsert": {"created_at": now}},
+            upsert=True,
+        )
+
+    async def update_status(
+        self,
+        document_id: str,
+        status: str,
+        step: str = "",
+        error: str = "",
+    ) -> None:
+        """Update processing status and current step in-place."""
+        patch: dict[str, Any] = {"status": status, "updated_at": datetime.now(timezone.utc)}
+        if step:
+            patch["progress_step"] = step
+        if error:
+            patch["error"] = error
+        await self.collection.update_one({"document_id": document_id}, {"$set": patch})
+
     async def save(
         self, document_id: str, filename: str, metadata: dict[str, Any], strategy: str,
     ) -> None:
@@ -27,6 +63,7 @@ class DocumentRepository:
                     "metadata": metadata,
                     "strategy": strategy,
                     "status": "completed",
+                    "progress_step": "Done",
                     "updated_at": now,
                 },
                 "$setOnInsert": {"created_at": now},
@@ -37,8 +74,11 @@ class DocumentRepository:
     async def get(self, document_id: str) -> Optional[dict]:
         return await self.collection.find_one({"document_id": document_id}, {"_id": 0})
 
-    async def list_all(self, skip: int = 0, limit: int = 50) -> list[dict]:
-        cursor = self.collection.find({}, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    async def list_all(self, skip: int = 0, limit: int = 50, category: str | None = None) -> list[dict]:
+        query: dict[str, Any] = {}
+        if category:
+            query["category"] = category
+        cursor = self.collection.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
         return [doc async for doc in cursor]
 
     async def delete(self, document_id: str) -> bool:

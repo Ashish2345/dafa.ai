@@ -95,6 +95,11 @@ class MongoDB:
                 maxPoolSize=settings.mongodb_max_pool_size,
                 minPoolSize=settings.mongodb_min_pool_size,
                 serverSelectionTimeoutMS=5000,
+                # Keep connections alive across long-running background tasks
+                maxIdleTimeMS=60_000,
+                # Auto-retry on transient network errors / stale connections
+                retryReads=True,
+                retryWrites=True,
             )
 
             # Test connection

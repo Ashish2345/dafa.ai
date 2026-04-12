@@ -170,20 +170,29 @@ class PDFParser(Parser):
                 logger.info("OCR disabled, returning empty OCR results")
                 raw_ocr = [pd.DataFrame() for _ in page_scalars]
 
-        # Get page images for AWS table extraction
+        # Page images are only needed for AWS table extraction.
+        # Loading all pages at once (~26 MB each) causes OOM on large documents,
+        # so skip entirely unless table extraction is explicitly requested with AWS.
         page_images = []
-        try:
-            with PDFReader(
-                str(file_path),
-                dpi=self.pdf_config.dpi,
-                use_dynamic_dpi=True,
-            ) as reader:
-                for page_idx in range(min(len(page_scalars), reader.page_count)):
-                    page = reader[page_idx]
-                    image = page.to_image()
-                    page_images.append(image)
-        except Exception as e:
-            logger.warning(f"Error getting page images for table extraction: {e}")
+        needs_images = (
+            self.pdf_config.extract_tables
+            and self.pdf_config.ocr_provider.lower() == "aws"
+        )
+        if needs_images:
+            try:
+                with PDFReader(
+                    str(file_path),
+                    dpi=self.pdf_config.dpi,
+                    use_dynamic_dpi=True,
+                ) as reader:
+                    for page_idx in range(min(len(page_scalars), reader.page_count)):
+                        page = reader[page_idx]
+                        image = page.to_image()
+                        page_images.append(image)
+            except Exception as e:
+                logger.warning(f"Error getting page images for table extraction: {e}")
+        else:
+            logger.debug("Skipping page image loading (AWS table extraction not enabled)")
 
         return {
             "file_metadata": {

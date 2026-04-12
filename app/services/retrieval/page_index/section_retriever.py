@@ -51,7 +51,8 @@ class SectionRetriever:
             prompt=user_prompt,
             system_instruction=system_prompt,
             temperature=0.1,
-            max_tokens=500,
+            max_tokens=4096,  # thinking tokens eat into the budget; 500 is too low
+            add_warning=False,
         )
 
         nav_result = self._parse_json_response(response)
@@ -87,13 +88,15 @@ class SectionRetriever:
                 continue
 
             section_text = self._extract_node_text(node, markdown_content)
+            page_range = node.get("page_range", [])
             sections.append(
                 {
                     "nodeId": node_id,
+                    "int_id": node.get("id"),  # depth-first integer ID for highlights API
                     "title": node.get("title", ""),
                     "summary": node.get("summary", ""),
                     "text": section_text,
-                    "page_range": node.get("page_range", []),
+                    "page_range": page_range,
                     "metadata": {
                         "source": "page_index",
                         "node_id": node_id,
@@ -116,7 +119,8 @@ class SectionRetriever:
         title = node.get("title", "").strip()
         if title and markdown:
             escaped = re.escape(title)
-            pattern = rf"(#{1,6}\s*{escaped}.*?)(?=\n#{1,6}\s|\Z)"
+            # Allow optional numbering prefix like "2.1 " between hashes and title
+            pattern = rf"(#{1,6}[^\n]*{escaped}.*?)(?=\n#{1,6}\s|\Z)"
             match = re.search(pattern, markdown, re.DOTALL | re.IGNORECASE)
             if match:
                 return match.group(1).strip()[:3000]

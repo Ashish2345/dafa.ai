@@ -43,7 +43,7 @@ if __name__ == "__main__":
         "app.main:app",
         host=settings.host,
         port=settings.port,
-        reload=settings.debug,
+        reload=settings.is_development,
         log_level=log_level,
     )
 else:

@@ -1,0 +1,688 @@
+{
+  "info": {
+    "name": "dafa.ai API",
+    "description": "Document Parser & RAG (Retrieval-Augmented Generation) API for dafa.ai. Upload documents, extract content via OCR, and query them using LLM-powered search.\n\n## Setup\n1. Register a user via `POST /auth/register`\n2. Login via `POST /auth/login` — the collection auto-saves the tokens\n3. All protected endpoints automatically use `{{access_token}}`\n\n## Environments\nImport the included environment and set:\n- `base_url` — e.g. `http://localhost:8000`\n- `jwt_secret` — only needed for manual token inspection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "description": "Public health-check endpoints for liveness and readiness probes.",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Basic liveness check. Returns service version and timestamp."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"healthy\",\n  \"version\": \"0.1.0\",\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health/ready",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health", "ready"]
+            },
+            "description": "Readiness probe — validates database and storage connectivity. Use for Kubernetes readiness checks."
+          },
+          "response": [
+            {
+              "name": "200 Ready",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"ready\",\n  \"database\": true,\n  \"storage\": true,\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "200 Not Ready",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"not_ready\",\n  \"database\": false,\n  \"storage\": true,\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "User registration, login, token refresh, and profile endpoints.",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', body.user_id);",
+                  "    pm.test('User created', () => pm.response.to.have.status(201));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"securepassword123\",\n  \"full_name\": \"John Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Create a new user account.\n\n**Fields:**\n- `email` — valid email address\n- `password` — minimum 8 characters\n- `full_name` — 1–100 characters"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
+            },
+            {
+              "name": "409 Conflict",
+              "status": "Conflict",
+              "code": 409,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"User already exists\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', body.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', body.refresh_token);",
+                  "    pm.test('Tokens saved', () => {",
+                  "        pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "        pm.expect(body.refresh_token).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"securepassword123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Authenticate with email and password. The test script automatically saves `access_token` and `refresh_token` to collection variables."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
+            },
+            {
+              "name": "401 Bad Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Incorrect email or password\"\n}"
+            },
+            {
+              "name": "403 Disabled Account",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Account is disabled\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', body.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', body.refresh_token);",
+                  "    pm.test('Tokens rotated', () => {",
+                  "        pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            },
+            "description": "Exchange a valid refresh token for a new access + refresh token pair. Both old tokens are invalidated."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
+            },
+            {
+              "name": "401 Invalid Token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Invalid token type\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Returns the profile of the currently authenticated user. Uses the `access_token` collection variable automatically."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Invalid or expired token\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "description": "Upload, list, retrieve, download, and delete documents. All endpoints require a valid Bearer token.",
+      "item": [
+        {
+          "name": "Upload Document (file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    if (body.document_id) {",
+                  "        pm.collectionVariables.set('document_id', body.document_id);",
+                  "        pm.test('document_id saved', () => pm.expect(body.document_id).to.be.a('string'));",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "",
+                  "description": "PDF or image file to upload (max 50 MB). Supported: .pdf, .png, .jpg, .jpeg, .gif, .tiff, .bmp, .webp"
+                },
+                {
+                  "key": "file_type",
+                  "value": "file",
+                  "type": "text",
+                  "description": "\"file\" or \"url\""
+                },
+                {
+                  "key": "language",
+                  "value": "en",
+                  "type": "text",
+                  "description": "\"en\" or \"ne\" (Nepali)"
+                },
+                {
+                  "key": "ocr_enabled",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Enable OCR processing"
+                },
+                {
+                  "key": "ocr_provider",
+                  "value": "google",
+                  "type": "text",
+                  "description": "\"google\", \"aws\", or \"azure\"",
+                  "disabled": true
+                },
+                {
+                  "key": "extract_metadata",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Extract document metadata"
+                },
+                {
+                  "key": "extract_tables",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Extract tables from the document",
+                  "disabled": true
+                },
+                {
+                  "key": "extract_images",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Extract embedded images",
+                  "disabled": true
+                },
+                {
+                  "key": "dpi",
+                  "value": "150",
+                  "type": "text",
+                  "description": "DPI for rendering (150–600)",
+                  "disabled": true
+                },
+                {
+                  "key": "orientation_correction",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Auto-correct page orientation",
+                  "disabled": true
+                },
+                {
+                  "key": "jpeg_quality",
+                  "value": "85",
+                  "type": "text",
+                  "description": "JPEG quality 1–100",
+                  "disabled": true
+                },
+                {
+                  "key": "strategy",
+                  "value": "page_index",
+                  "type": "text",
+                  "description": "\"page_index\" or \"vector\"",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "upload"]
+            },
+            "description": "Upload a local file for parsing and ingestion. The `document_id` from the response is automatically saved to the collection variable."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"COMPLETED\",\n  \"content\": \"Extracted document text...\",\n  \"metadata\": {\n    \"author\": \"John Doe\",\n    \"title\": \"Sample Document\"\n  },\n  \"page_count\": 5,\n  \"tables\": [],\n  \"parsed_at\": \"2026-04-11T12:00:00Z\",\n  \"error\": null\n}"
+            },
+            {
+              "name": "400 Invalid File",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Unsupported file type\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upload Document (URL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    if (body.document_id) {",
+                  "        pm.collectionVariables.set('document_id', body.document_id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file_type",
+                  "value": "url",
+                  "type": "text"
+                },
+                {
+                  "key": "file_url",
+                  "value": "https://example.com/sample.pdf",
+                  "type": "text",
+                  "description": "Public URL to a PDF or image"
+                },
+                {
+                  "key": "language",
+                  "value": "en",
+                  "type": "text"
+                },
+                {
+                  "key": "ocr_enabled",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "extract_metadata",
+                  "value": "true",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "upload"]
+            },
+            "description": "Ingest a document from a public URL instead of a local file upload."
+          },
+          "response": []
+        },
+        {
+          "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents?skip=0&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents"],
+              "query": [
+                {
+                  "key": "skip",
+                  "value": "0",
+                  "description": "Offset (>= 0)"
+                },
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Page size (1–200)"
+                }
+              ]
+            },
+            "description": "Return a paginated list of all documents belonging to the current user."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"documents\": [\n    {\n      \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"filename\": \"document.pdf\",\n      \"status\": \"COMPLETED\",\n      \"page_count\": 5,\n      \"created_at\": \"2026-04-11T12:00:00Z\"\n    }\n  ],\n  \"count\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "{{document_id}}"]
+            },
+            "description": "Retrieve full details and extracted content for a specific document. Uses the `document_id` collection variable."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"COMPLETED\",\n  \"content\": \"Extracted document text...\",\n  \"metadata\": {\n    \"author\": \"John Doe\",\n    \"title\": \"Sample Document\"\n  },\n  \"page_count\": 5,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Document not found\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Download Document PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/{{document_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "{{document_id}}", "pdf"]
+            },
+            "description": "Download the original PDF binary for a document. Response Content-Type is `application/pdf`."
+          },
+          "response": [
+            {
+              "name": "200 OK — PDF binary",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/pdf" }],
+              "body": "<binary PDF data>"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"PDF not found for document\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "{{document_id}}"]
+            },
+            "description": "Permanently delete a document and all associated data (metadata, page index, GridFS files)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"deleted\",\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"detail\": \"Document not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Query",
+      "description": "RAG query endpoints — ask questions against ingested documents.",
+      "item": [
+        {
+          "name": "Query Documents",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"What is the main topic of this document?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Ask a natural-language question against all ingested documents.\n\n**Fields:**\n- `query` *(required)* — the question\n- `top_k` — number of chunks to retrieve (1–20, default 5)\n- `use_llm` — generate an LLM answer over the retrieved chunks (default `true`)\n- `strategy` — `\"page_index\"` (default) or `\"vector\"`\n- `collection_name` — restrict to a specific Qdrant collection\n- `filter_conditions` — metadata key/value filters"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"query\": \"What is the main topic of this document?\",\n  \"answer\": \"The document discusses financial regulations...\",\n  \"chunks\": [\n    {\n      \"text\": \"Chunk text content...\",\n      \"source\": \"document.pdf#page_1\",\n      \"score\": 0.92,\n      \"metadata\": {\n        \"page_number\": 1\n      }\n    }\n  ],\n  \"sources\": [\n    {\n      \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"filename\": \"document.pdf\",\n      \"pages\": [1, 2]\n    }\n  ],\n  \"metadata\": {\n    \"strategy\": \"page_index\",\n    \"retrieval_time_ms\": 245,\n    \"total_chunks\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Query with Vector Strategy",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"What are the tax implications mentioned?\",\n  \"top_k\": 10,\n  \"use_llm\": true,\n  \"strategy\": \"vector\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Same as Query Documents but uses the vector (embedding) retrieval strategy instead of page_index."
+          },
+          "response": []
+        },
+        {
+          "name": "Query with Collection Filter",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"What regulations apply to finance companies?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\",\n  \"collection_name\": \"finance_acts\",\n  \"filter_conditions\": {\n    \"language\": \"en\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/query",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "query"]
+            },
+            "description": "Query restricted to a specific Qdrant collection with metadata filtering."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

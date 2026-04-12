@@ -116,6 +116,9 @@ class VectorStrategy(RetrievalStrategy):
         document_id: str,
         markdown: str,
         metadata: dict[str, Any],
+        on_progress=None,
+        page_bbox_map: list[dict] | None = None,
+        image_dimensions: dict | None = None,
     ) -> None:
         from app.services.ingestion.chunking import ChunkingService
 

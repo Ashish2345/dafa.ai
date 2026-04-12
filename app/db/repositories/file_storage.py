@@ -425,6 +425,49 @@ class FileStorageRepository:
                 status_code=500,
             ) from e
 
+    async def get_image_by_page(self, document_id: str, page_number: int) -> Optional[tuple]:
+        """
+        Retrieve a specific page image by document_id and page_number.
+
+        Returns:
+            Tuple of (image_bytes, metadata) or None if not found.
+        """
+        try:
+            fs_files, fs_chunks = await self._get_collections()
+            file_info = await fs_files.find_one({
+                "$or": [
+                    {"metadata.document_id": document_id},
+                    {"metadata.document_name": document_id},
+                ],
+                "metadata.page_number": page_number,
+            })
+            if not file_info:
+                return None
+            file_id = file_info["_id"]
+            chunks = await fs_chunks.find(
+                {"files_id": file_id},
+                sort=[("n", 1)],
+            ).to_list(length=None)
+            image_data = b"".join(chunk["data"] for chunk in chunks)
+            return image_data, file_info.get("metadata", {})
+        except Exception as e:
+            logger.error(f"Error getting image by page: {e}")
+            return None
+
+    async def count_images_by_document(self, document_id: str) -> int:
+        """Return the number of page images stored for a document."""
+        try:
+            fs_files, _ = await self._get_collections()
+            return await fs_files.count_documents({
+                "$or": [
+                    {"metadata.document_id": document_id},
+                    {"metadata.document_name": document_id},
+                ],
+                "metadata.page_number": {"$exists": True, "$ne": None},
+            })
+        except Exception:
+            return 0
+
     async def get_pdf_by_document(self, document_id: str) -> Optional[dict]:
         """
         Get PDF file for a document.

@@ -63,6 +63,7 @@ class LLMService:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         return_metadata: bool = False,
+        add_warning: bool = True,
     ) -> Union[str, Tuple[str, Dict[str, any]]]:
         """
         Call the LLM with a prompt.
@@ -72,6 +73,9 @@ class LLMService:
             system_instruction: Optional system instruction
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
+            add_warning: Whether to append a truncation warning to the response.
+                         Set to False for structured JSON calls so the warning
+                         text does not corrupt the JSON output.
 
         Returns:
             Generated text response (or tuple with metadata if return_metadata=True)
@@ -83,7 +87,7 @@ class LLMService:
             raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in .env file.")
 
         start_time = time.time()
-        
+
         # Retry logic for transient failures
         last_error = None
         for attempt in range(self.max_retries):
@@ -94,6 +98,7 @@ class LLMService:
                     temperature=temperature,
                     max_tokens=max_tokens,
                     return_metadata=return_metadata,
+                    add_warning=add_warning,
                     attempt=attempt,
                     start_time=start_time,
                 )
@@ -134,21 +139,23 @@ class LLMService:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         return_metadata: bool = False,
+        add_warning: bool = True,
         attempt: int = 0,
         start_time: float = 0,
     ) -> Union[str, Tuple[str, Dict[str, any]]]:
         """
         Internal method to make LLM call with retry support.
-        
+
         Args:
             prompt: User prompt
             system_instruction: Optional system instruction
             temperature: Optional temperature override
             max_tokens: Optional max tokens override
             return_metadata: Whether to return metadata
+            add_warning: Append truncation warning to response text (disable for JSON)
             attempt: Current attempt number
             start_time: Start time for timing
-            
+
         Returns:
             Generated text response (or tuple with metadata)
         """
@@ -157,16 +164,10 @@ class LLMService:
             messages = [{"role": "user", "parts": [{"text": prompt}]}]
 
             # Build config
-            # Ensure max_tokens is reasonable (Gemini 2.5 Flash supports up to 8192)
+            # Gemini 2.5 Flash supports up to 65,536 output tokens
+            _GEMINI_MAX_OUTPUT_TOKENS = 65_536
             requested_max_tokens = max_tokens or self.max_tokens
-            # Cap at 8192 (Gemini 2.5 Flash limit)
-            actual_max_tokens = min(requested_max_tokens, 8192)
-            
-            if requested_max_tokens > 8192:
-                logger.warning(
-                    f"Requested max_tokens ({requested_max_tokens}) exceeds Gemini limit (8192). "
-                    f"Using 8192 instead."
-                )
+            actual_max_tokens = min(requested_max_tokens, _GEMINI_MAX_OUTPUT_TOKENS)
             
             config = GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -247,7 +248,7 @@ class LLMService:
             formatted_text = self.response_handler.format_response(
                 text=sanitized_text,
                 metadata=response_metadata,
-                add_warning=True,
+                add_warning=add_warning,
             )
             
             # Log completion status

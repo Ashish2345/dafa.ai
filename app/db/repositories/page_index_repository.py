@@ -25,6 +25,7 @@ class PageIndexRepository:
         tree: dict,
         markdown: str,
         language: str = "en",
+        image_dimensions: dict | None = None,
     ) -> None:
         """
         Upsert the hierarchical tree and full Markdown for a document.
@@ -34,6 +35,8 @@ class PageIndexRepository:
             tree: Tree JSON returned by PageIndexService.build_tree()
             markdown: Full Markdown text of the document (used for node text retrieval)
             language: Document language ("en" | "ne")
+            image_dimensions: Optional dict with "width" and "height" of the first page
+                               image (used for coordinate normalisation in the UI).
         """
         now = datetime.now(timezone.utc)
 
@@ -44,6 +47,7 @@ class PageIndexRepository:
                     "document_id": document_id,
                     "tree": tree,
                     "language": language,
+                    "image_dimensions": image_dimensions,
                     "updated_at": now,
                 },
                 "$setOnInsert": {"created_at": now},
@@ -79,3 +83,35 @@ class PageIndexRepository:
         """Return all document_ids that have a PageIndex tree."""
         cursor = self.trees.find({}, {"document_id": 1, "_id": 0})
         return [doc["document_id"] async for doc in cursor]
+
+    async def get_node_highlights(
+        self, document_id: str, node_ids: list[int]
+    ) -> dict | None:
+        """Fetch page_bboxes for specific tree node IDs."""
+        tree_doc = await self.trees.find_one(
+            {"document_id": document_id},
+            {"tree.nodes": 1, "image_dimensions": 1},
+        )
+        if not tree_doc:
+            return None
+
+        node_ids_set = set(node_ids)
+        highlights = []
+
+        def _collect_nodes(nodes):
+            for node in nodes:
+                if node.get("id") in node_ids_set:
+                    highlights.append({
+                        "node_id": node["id"],
+                        "title": node.get("title", ""),
+                        "page_bboxes": node.get("page_bboxes", []),
+                    })
+                if node.get("children"):
+                    _collect_nodes(node["children"])
+
+        _collect_nodes(tree_doc.get("tree", {}).get("nodes", []))
+
+        return {
+            "highlights": highlights,
+            "image_dimensions": tree_doc.get("image_dimensions"),
+        }

@@ -13,6 +13,9 @@ from loguru import logger
 from app.services.parsers.ocr_input_parser import OCRInputParser
 
 
+PAGE_SEPARATOR = "\n\n---\n\n"
+
+
 class DocumentProcessor:
     """
     Processes OCR output and converts it to Markdown format.
@@ -51,6 +54,7 @@ class DocumentProcessor:
                 "pages": List[Dict],  # Per-page Markdown with metadata
                 "tables": List[Dict],  # Table information
                 "metadata": Dict,  # Document metadata
+                "page_bbox_map": List[Dict],  # Character-offset to page/bbox mapping
             }
         """
         logger.info("Processing document to Markdown format")
@@ -62,10 +66,49 @@ class DocumentProcessor:
             page_images=page_images,
         )
 
-        # Convert to Markdown
-        markdown_result = self._convert_to_markdown(parsed_result)
+        # Single parse: build all output from _convert_to_markdown_with_bboxes
+        full_markdown, page_bbox_map = self._convert_to_markdown_with_bboxes(parsed_result)
 
-        return markdown_result
+        pages = parsed_result.get("pages", [])
+        tables = parsed_result.get("tables", [])
+        fields = parsed_result.get("fields", {})
+        metadata = parsed_result.get("metadata", {})
+
+        # Reconstruct per-page markdown entries (reuses already-computed page md)
+        markdown_pages = []
+        for page_data in pages:
+            page_number = page_data.get("page_number", 0)
+            page_content = page_data.get("content", "")
+            page_blocks = page_data.get("blocks", [])
+            page_tables = page_data.get("tables", [])
+            page_markdown = self._convert_page_to_markdown(
+                page_content, page_blocks, page_tables, page_number
+            )
+            markdown_pages.append({
+                "page_number": page_number,
+                "markdown": page_markdown,
+                "word_count": page_data.get("word_count", 0),
+                "bbox": page_data.get("bbox", [0, 0, 0, 0]),
+            })
+
+        formatted_tables = []
+        for table in tables:
+            formatted_tables.append({
+                "table_id": table.get("table_id", ""),
+                "page": table.get("page", 0),
+                "html": table.get("html", ""),
+                "markdown": self._html_table_to_markdown(table.get("html", "")),
+                "bbox": table.get("bbox", [0, 0, 0, 0]),
+            })
+
+        return {
+            "markdown": full_markdown,
+            "pages": markdown_pages,
+            "tables": formatted_tables,
+            "fields": fields,
+            "metadata": metadata,
+            "page_bbox_map": page_bbox_map,
+        }
 
     def _convert_to_markdown(self, parsed_result: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -107,7 +150,7 @@ class DocumentProcessor:
             all_markdown_parts.append(page_markdown)
 
         # Combine all pages
-        full_markdown = "\n\n---\n\n".join(all_markdown_parts)
+        full_markdown = PAGE_SEPARATOR.join(all_markdown_parts)
 
         # Format tables metadata
         formatted_tables = []
@@ -127,6 +170,80 @@ class DocumentProcessor:
             "fields": fields,
             "metadata": metadata,
         }
+
+    def _convert_to_markdown_with_bboxes(
+        self, parsed_result: Dict[str, Any]
+    ) -> tuple[str, list[dict]]:
+        """
+        Convert parsed OCR result to Markdown and produce a page_bbox_map.
+
+        The page_bbox_map records the character-offset range in the final
+        markdown string that corresponds to each page, together with that
+        page's bounding box.  Offsets are computed to match exactly the
+        output produced by _convert_to_markdown() (pages joined with
+        "\\n\\n---\\n\\n").
+
+        Args:
+            parsed_result: Result from OCRInputParser.parse()
+
+        Returns:
+            tuple of (markdown_string, page_bbox_map) where page_bbox_map is:
+            [
+                {
+                    "start_char": int,
+                    "end_char": int,
+                    "page": int,
+                    "bbox": {"x0": float, "y0": float, "x2": float, "y2": float},
+                },
+                ...
+            ]
+        """
+        pages = parsed_result.get("pages", [])
+        page_markdown_parts: List[str] = []
+        page_bbox_map: List[Dict[str, Any]] = []
+
+        for page_data in pages:
+            page_number = page_data.get("page_number", 0)
+            page_content = page_data.get("content", "")
+            page_blocks = page_data.get("blocks", [])
+            page_tables = page_data.get("tables", [])
+            raw_bbox = page_data.get("bbox", None)
+
+            page_md = self._convert_page_to_markdown(
+                page_content, page_blocks, page_tables, page_number
+            )
+            page_markdown_parts.append(page_md)
+
+            # Only record a mapping entry when there is actual content and a
+            # valid bbox.  raw_bbox arrives as a list [x0, y0, x2, y2].
+            if raw_bbox is not None and page_md.strip():
+                # Compute start_char as the length of everything assembled so
+                # far: all previous page strings plus their separators.
+                preceding = PAGE_SEPARATOR.join(page_markdown_parts[:-1])
+                start_char = len(preceding) + (len(PAGE_SEPARATOR) if len(page_markdown_parts) > 1 else 0)
+                end_char = start_char + len(page_md)
+
+                # Normalise bbox regardless of whether it arrived as a list or
+                # a dict (the OCR parser currently returns a list).
+                if isinstance(raw_bbox, (list, tuple)) and len(raw_bbox) >= 4:
+                    x0, y0, x2, y2 = (float(v) for v in raw_bbox[:4])
+                elif isinstance(raw_bbox, dict):
+                    x0 = float(raw_bbox.get("x0", 0))
+                    y0 = float(raw_bbox.get("y0", 0))
+                    x2 = float(raw_bbox.get("x2", 0))
+                    y2 = float(raw_bbox.get("y2", 0))
+                else:
+                    x0 = y0 = x2 = y2 = 0.0
+
+                page_bbox_map.append({
+                    "start_char": start_char,
+                    "end_char": end_char,
+                    "page": page_number,
+                    "bbox": {"x0": x0, "y0": y0, "x2": x2, "y2": y2},
+                })
+
+        full_markdown = PAGE_SEPARATOR.join(page_markdown_parts)
+        return full_markdown, page_bbox_map
 
     def _convert_page_to_markdown(
         self,

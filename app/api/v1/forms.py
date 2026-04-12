@@ -20,6 +20,9 @@ class ParseFormData(BaseModel):
     Use with Depends(ParseFormData.as_form()) to parse multipart form data.
     """
 
+    # Document title (required — shown everywhere instead of document_id)
+    title: str = Field(..., description="Document title (e.g. 'Nepal Taxation 2022 Edition')")
+
     # File input params
     file_type: Literal["url", "file"] = Field("file", description="Input type: 'file' for upload, 'url' for signed URL")
     file_url: Optional[str] = Field(None, description="URL to download file from (when file_type='url')")
@@ -33,6 +36,10 @@ class ParseFormData(BaseModel):
     # Document language
     language: str = Field("en", description="Document language: 'en' (English) or 'ne' (Nepali/Devanagari). "
                           "Controls OCR language hints, metadata pattern matching, and section detection.")
+    category: Optional[str] = Field(
+        None,
+        description="Library category: acts-rules | finance-acts | nrb | ird | gazette",
+    )
 
     # OCR params
     ocr_enabled: Optional[bool] = Field(None, description="Enable OCR for scanned PDFs")

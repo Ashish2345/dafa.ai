@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -27,18 +27,88 @@ from app.services.retrieval.factory import RetrievalFactory
 from app.utils.auth import get_current_user
 from app.utils.exceptions import AppException
 
+
+async def get_page_index_repository() -> PageIndexRepository:
+    """FastAPI dependency that returns a PageIndexRepository backed by the app database."""
+    db = await get_database()
+    return PageIndexRepository(db)
+
+
+async def _run_ingestion_background(
+    file_path: str,
+    document_id: str,
+    filename: str,
+    form_data: ParseFormData,
+) -> None:
+    """Background task: runs the full ingestion pipeline and cleans up the temp file."""
+    try:
+        db = await get_database()
+        doc_repo = DocumentRepository(db)
+
+        async def on_progress(step: str) -> None:
+            await doc_repo.update_status(document_id, "processing", step=step)
+
+        language = getattr(form_data, "language", "en")
+        strategy_name = getattr(form_data, "strategy", None)
+        strategy = await RetrievalFactory.get_strategy(strategy_name)
+
+        form_dict = form_data.model_dump()
+        if language == "ne" and not form_data.ocr_languages:
+            form_dict["ocr_languages"] = ["ne"]
+        request_config = RequestConfigBuilder.from_form_data(form_dict)
+
+        pipeline = IngestionPipeline(
+            parser_factory=ParserFactory(request_config),
+            processor=DocumentProcessor(),
+            metadata_extractor=MetadataExtractor(language=language),
+            file_storage=FileStorageRepository(db),
+            document_repo=doc_repo,
+        )
+
+        result = await pipeline.run(
+            file_path=Path(file_path),
+            filename=filename,
+            document_id=document_id,
+            strategy=strategy,
+            language=language,
+            on_progress=on_progress,
+        )
+
+        if result.get("status") == "failed":
+            await doc_repo.update_status(
+                document_id, "failed", step="Failed", error=result.get("error", "Unknown error")
+            )
+        else:
+            logger.info(f"Background ingestion complete: {document_id}")
+
+    except Exception as e:
+        logger.error(f"Background ingestion failed for {document_id}: {e}")
+        try:
+            db = await get_database()
+            await DocumentRepository(db).update_status(
+                document_id, "failed", step="Failed", error=str(e)
+            )
+        except Exception:
+            pass
+    finally:
+        Path(file_path).unlink(missing_ok=True)
+
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-@router.post("/upload", summary="Upload and ingest a document")
+@router.post("/upload", summary="Upload and ingest a document", status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: Optional[UploadFile] = File(None),
     form_data: ParseFormData = Depends(ParseFormData.as_form()),
     current_user: dict = Depends(get_current_user),
 ):
-    """Upload a PDF, run full ingestion pipeline with the selected strategy."""
-    logger.info("Starting document upload")
+    """Upload a PDF and start ingestion in the background.
 
+    Returns immediately with ``status: processing``.
+    Poll ``GET /documents/{document_id}`` to track progress via the
+    ``status`` and ``progress_step`` fields.
+    """
     original_filename = None
     if file and file.filename:
         original_filename = file.filename
@@ -58,39 +128,31 @@ async def upload_document(
             file_url=form_data.file_url,
         )
 
-        try:
-            document_id = str(uuid.uuid4())
-            language = getattr(form_data, "language", "en")
+        document_id = str(uuid.uuid4())
+        filename = original_filename or Path(file_path).name
 
-            strategy_name = getattr(form_data, "strategy", None)
-            strategy = await RetrievalFactory.get_strategy(strategy_name)
+        # Create the record now so polling works immediately
+        db = await get_database()
+        await DocumentRepository(db).save_initial(
+            document_id, filename, category=form_data.category, title=form_data.title,
+        )
 
-            form_dict = form_data.model_dump()
-            if language == "ne" and not form_data.ocr_languages:
-                form_dict["ocr_languages"] = ["ne"]
-            request_config = RequestConfigBuilder.from_form_data(form_dict)
+        # Hand off to background — temp file is deleted by the task when done
+        background_tasks.add_task(
+            _run_ingestion_background,
+            file_path,
+            document_id,
+            filename,
+            form_data,
+        )
 
-            db = await get_database()
-            pipeline = IngestionPipeline(
-                parser_factory=ParserFactory(request_config),
-                processor=DocumentProcessor(),
-                metadata_extractor=MetadataExtractor(language=language),
-                file_storage=FileStorageRepository(db),
-                document_repo=DocumentRepository(db),
-            )
-
-            result = await pipeline.run(
-                file_path=Path(file_path),
-                filename=original_filename or Path(file_path).name,
-                document_id=document_id,
-                strategy=strategy,
-                language=language,
-            )
-
-            return result
-
-        finally:
-            Path(file_path).unlink(missing_ok=True)
+        logger.info(f"Ingestion queued: {document_id} ({filename})")
+        return {
+            "document_id": document_id,
+            "filename": filename,
+            "status": "processing",
+            "message": "Ingestion started. Poll GET /documents/{document_id} for progress.",
+        }
 
     except AppException:
         raise
@@ -107,12 +169,13 @@ async def upload_document(
 async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    category: Optional[str] = Query(None, description="Filter by category"),
     current_user: dict = Depends(get_current_user),
 ):
-    """List all ingested documents."""
+    """List all ingested documents, optionally filtered by category."""
     db = await get_database()
     repo = DocumentRepository(db)
-    documents = await repo.list_all(skip=skip, limit=limit)
+    documents = await repo.list_all(skip=skip, limit=limit, category=category)
     return {"documents": documents, "count": len(documents)}
 
 
@@ -142,18 +205,136 @@ async def get_document_pdf(
     """Serve the original PDF from GridFS."""
     db = await get_database()
     file_repo = FileStorageRepository(db)
-    pdf_data = await file_repo.get_pdf_by_document(document_id)
-    if not pdf_data:
+    pdf_meta = await file_repo.get_pdf_by_document(document_id)
+    if not pdf_meta:
         raise AppException(
             status_code=status.HTTP_404_NOT_FOUND,
             error_code="E_NOT_FOUND",
             message=f"PDF not found for document {document_id}",
         )
+    pdf_bytes, _ = await file_repo.get_pdf(pdf_meta["file_id"])
     return StreamingResponse(
-        iter([pdf_data["data"]]),
+        iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{pdf_data.get("filename", "document.pdf")}"'},
+        headers={"Content-Disposition": f'inline; filename="{pdf_meta.get("original_filename", "document.pdf")}"'},
     )
+
+
+@router.get("/{document_id}/image/{page_number}", summary="Get document page as image")
+async def get_document_image(
+    document_id: str,
+    page_number: int,
+    scale: float = Query(1.5, ge=0.5, le=3.0, description="Render scale factor"),
+    current_user: dict = Depends(get_current_user),
+):
+    """Serve a pre-rendered page image from GridFS, falling back to PDF rendering."""
+    db = await get_database()
+    file_repo = FileStorageRepository(db)
+
+    # Try to serve the pre-rendered image from GridFS
+    result = await file_repo.get_image_by_page(document_id, page_number)
+    if result:
+        img_bytes, _ = result
+        total_pages = await file_repo.count_images_by_document(document_id)
+        return Response(
+            content=img_bytes,
+            media_type="image/jpeg",
+            headers={
+                "X-Total-Pages": str(total_pages),
+                "Cache-Control": "public, max-age=3600",
+            },
+        )
+
+    # Fallback: render from PDF on-the-fly
+    import fitz
+
+    pdf_meta = await file_repo.get_pdf_by_document(document_id)
+    if not pdf_meta:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"PDF not found for document {document_id}",
+        )
+    pdf_bytes, _ = await file_repo.get_pdf(pdf_meta["file_id"])
+
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    total_pages = len(doc)
+
+    if page_number < 1 or page_number > total_pages:
+        doc.close()
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_PAGE_NOT_FOUND",
+            message=f"Page {page_number} not found (document has {total_pages} pages)",
+        )
+
+    page = doc[page_number - 1]
+    mat = fitz.Matrix(scale, scale)
+    pix = page.get_pixmap(matrix=mat)
+    img_bytes = pix.tobytes("jpeg")
+    doc.close()
+    return Response(
+        content=img_bytes,
+        media_type="image/jpeg",
+        headers={
+            "X-Total-Pages": str(total_pages),
+            "Cache-Control": "public, max-age=3600",
+        },
+    )
+
+
+@router.get("/{document_id}/page-count", summary="Get total page count for a document")
+async def get_document_page_count(
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Return the total number of pages (from stored images or PDF)."""
+    db = await get_database()
+    file_repo = FileStorageRepository(db)
+
+    # Fast path: count pre-stored images
+    count = await file_repo.count_images_by_document(document_id)
+    if count > 0:
+        return {"total_pages": count}
+
+    # Fallback: open PDF to count pages
+    import fitz
+
+    pdf_meta = await file_repo.get_pdf_by_document(document_id)
+    if not pdf_meta:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"PDF not found for document {document_id}",
+        )
+    pdf_bytes, _ = await file_repo.get_pdf(pdf_meta["file_id"])
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    total = len(doc)
+    doc.close()
+    return {"total_pages": total}
+
+
+@router.get("/{document_id}/highlights", summary="Get highlight bounding boxes for tree nodes")
+async def get_document_highlights(
+    document_id: str,
+    node_ids: str = Query(..., description="Comma-separated node IDs"),
+    current_user=Depends(get_current_user),
+    page_index_repo: PageIndexRepository = Depends(get_page_index_repository),
+):
+    """Get highlight bounding boxes for specific tree nodes."""
+    try:
+        ids = [int(x.strip()) for x in node_ids.split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="node_ids must be comma-separated integers")
+
+    if not ids:
+        raise HTTPException(status_code=400, detail="At least one node_id required")
+
+    result = await page_index_repo.get_node_highlights(document_id, ids)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Document tree not found")
+
+    return result
 
 
 @router.delete("/{document_id}", summary="Delete a document")

@@ -80,6 +80,7 @@ def create_app() -> FastAPI:
         "allow_credentials": settings.cors_allow_credentials,
         "allow_methods": ["*"],
         "allow_headers": ["*"],
+        "expose_headers": ["X-Total-Pages"],
     }
     if settings.cors_allow_origin_regex:
         cors_kw["allow_origin_regex"] = settings.cors_allow_origin_regex

@@ -7,7 +7,7 @@ The factory selects the right implementation per-request.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Awaitable, Callable, Optional
 
 
 @dataclass
@@ -45,6 +45,9 @@ class RetrievalStrategy(ABC):
         document_id: str,
         markdown: str,
         metadata: dict[str, Any],
+        on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
+        page_bbox_map: list[dict] | None = None,
+        image_dimensions: dict | None = None,
     ) -> None:
         """Store a processed document for later retrieval."""
         ...
