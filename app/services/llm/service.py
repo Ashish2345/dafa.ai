@@ -376,14 +376,19 @@ class LLMService:
         for idx, chunk in enumerate(chunks, 1):
             source = chunk.source if hasattr(chunk, "source") else chunk.get("source", {})
             doc_name = source.get("document_name", "Unknown")
+            doc_id = source.get("document_id", "")
             section = source.get("section", "")
             node_id = source.get("node_id", "")
+            page_range = source.get("page_range", [])
+            first_page = page_range[0] if page_range else 1
             text = chunk.text if hasattr(chunk, "text") else chunk.get("text", "")
 
             context_parts.append(
                 f"[Section {idx}]\n"
                 f"Act: {doc_name}\n"
+                f"Document ID: {doc_id}\n"
                 f"Node: {node_id} — {section}\n"
+                f"Page: {first_page}\n"
                 f"Content: {text}\n"
             )
 
