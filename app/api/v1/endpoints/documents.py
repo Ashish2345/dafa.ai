@@ -353,27 +353,8 @@ async def get_document_page_count(
     return {"total_pages": total}
 
 
-@router.get("/{document_id}/highlights", summary="Get highlight bounding boxes for tree nodes")
-async def get_document_highlights(
-    document_id: str,
-    node_ids: str = Query(..., description="Comma-separated node IDs"),
-    current_user=Depends(get_current_user),
-    page_index_repo: PageIndexRepository = Depends(get_page_index_repository),
-):
-    """Get highlight bounding boxes for specific tree nodes."""
-    try:
-        ids = [int(x.strip()) for x in node_ids.split(",") if x.strip()]
-    except ValueError:
-        raise HTTPException(status_code=400, detail="node_ids must be comma-separated integers")
-
-    if not ids:
-        raise HTTPException(status_code=400, detail="At least one node_id required")
-
-    result = await page_index_repo.get_node_highlights(document_id, ids)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Document tree not found")
-
-    return result
+# Old section-level highlights endpoint removed — replaced by
+# app/api/v1/endpoints/highlights.py which returns per-line word-level bboxes.
 
 
 @router.delete("/{document_id}", summary="Delete a document")

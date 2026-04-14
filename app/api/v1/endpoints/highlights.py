@@ -4,7 +4,7 @@ Highlights endpoint — returns word-level bounding boxes for citation highlight
 Returns data in the shape the frontend expects:
   { highlights: [{ node_id, title, page_bboxes: [{ page, bbox }] }], image_dimensions }
 
-Strategy:
+Strategy per node:
   1. If node has start_char/end_char → find words by character offset range
   2. Else if node has page_bboxes → find words by spatial overlap (y-range per page)
   3. Else → return the section-level page_bboxes as-is (last resort)
@@ -64,34 +64,14 @@ def _to_pixel_bboxes(line_bboxes: list[dict], page: int, img_w: float, img_h: fl
     ]
 
 
-@router.get("/{document_id}/highlights")
-async def get_highlights(
+async def _get_node_highlights(
+    node: dict,
     document_id: str,
-    node_ids: int | None = Query(None, description="Integer node ID (depth-first)"),
-    current_user: dict = Depends(get_current_user),
-    db=Depends(get_database),
-):
-    """Return bounding boxes for citation highlighting."""
-    if node_ids is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_ids required")
-
-    tree_doc = await db.page_index_trees.find_one(
-        {"document_id": document_id},
-        {"tree.nodes": 1, "image_dimensions": 1, "_id": 0},
-    )
-    if not tree_doc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-
-    image_dimensions = tree_doc.get("image_dimensions")
-    nodes = tree_doc.get("tree", {}).get("nodes", [])
-    node = _find_node_by_int_id(nodes, node_ids)
-    if not node:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
-
-    img_w = image_dimensions.get("width", 1) if image_dimensions else 1
-    img_h = image_dimensions.get("height", 1) if image_dimensions else 1
-    bbox_repo = OcrBboxRepository(db)
-
+    bbox_repo: OcrBboxRepository,
+    img_w: float,
+    img_h: float,
+) -> dict:
+    """Build highlight entry for a single node using the 3-strategy fallback."""
     page_bboxes: list[dict] = []
 
     start_char = node.get("start_char", -1)
@@ -110,7 +90,6 @@ async def get_highlights(
         for pb in node_page_bboxes:
             pg = pb["page"]
             bbox = pb["bbox"]
-            # page_bboxes bbox values are in pixel coords — normalize to 0-1
             norm_y0 = bbox["y0"] / img_h if img_h else 0
             norm_y2 = bbox["y2"] / img_h if img_h else 1
             words = await bbox_repo.get_words_in_spatial_region(
@@ -125,12 +104,49 @@ async def get_highlights(
         page_bboxes = node.get("page_bboxes", [])
 
     return {
-        "highlights": [
-            {
-                "node_id": node.get("id", node_ids),
-                "title": node.get("title", ""),
-                "page_bboxes": page_bboxes,
-            }
-        ],
+        "node_id": node.get("id"),
+        "title": node.get("title", ""),
+        "page_bboxes": page_bboxes,
+    }
+
+
+@router.get("/{document_id}/highlights")
+async def get_highlights(
+    document_id: str,
+    node_ids: str = Query(..., description="Comma-separated integer node IDs"),
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Return bounding boxes for citation highlighting."""
+    try:
+        ids = [int(x.strip()) for x in node_ids.split(",") if x.strip()]
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_ids must be comma-separated integers")
+    if not ids:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_ids required")
+
+    tree_doc = await db.page_index_trees.find_one(
+        {"document_id": document_id},
+        {"tree.nodes": 1, "image_dimensions": 1, "_id": 0},
+    )
+    if not tree_doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    image_dimensions = tree_doc.get("image_dimensions")
+    nodes = tree_doc.get("tree", {}).get("nodes", [])
+    img_w = image_dimensions.get("width", 1) if image_dimensions else 1
+    img_h = image_dimensions.get("height", 1) if image_dimensions else 1
+    bbox_repo = OcrBboxRepository(db)
+
+    all_highlights = []
+    for node_int_id in ids:
+        node = _find_node_by_int_id(nodes, node_int_id)
+        if not node:
+            continue
+        highlight = await _get_node_highlights(node, document_id, bbox_repo, img_w, img_h)
+        all_highlights.append(highlight)
+
+    return {
+        "highlights": all_highlights,
         "image_dimensions": image_dimensions,
     }
