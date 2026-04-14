@@ -71,42 +71,51 @@ async def _get_node_highlights(
     img_w: float,
     img_h: float,
 ) -> dict:
-    """Build highlight entry for a single node using the 3-strategy fallback."""
+    """Build highlight entry for a single node.
+
+    Strategy priority:
+      1. Spatial matching using page_bboxes (always accurate — uses real y-coords)
+      2. Char offset range (backup — char offsets can drift for multi-word OCR blocks)
+      3. Raw section-level page_bboxes (last resort)
+
+    Spatial is primary because page_bboxes come from proportional page mapping
+    and word y-coordinates from OCR are always correct. Char offsets can drift
+    when OCR text blocks don't match the markdown word-by-word.
+    """
     page_bboxes: list[dict] = []
 
-    start_char = node.get("start_char", -1)
-    end_char = node.get("end_char", -1)
+    # Strategy 1 (primary): spatial matching using node's page_bboxes region
+    node_page_bboxes = node.get("page_bboxes", [])
+    for pb in node_page_bboxes:
+        pg = pb["page"]
+        bbox = pb["bbox"]
+        norm_y0 = bbox["y0"] / img_h if img_h else 0
+        norm_y2 = bbox["y2"] / img_h if img_h else 1
 
-    # Strategy 1: char offset range (most precise)
-    if start_char >= 0 and end_char > start_char:
-        page_results = await bbox_repo.get_words_in_range(document_id, start_char, end_char)
-        for page_data in page_results:
-            line_bboxes = _group_words_into_line_bboxes(page_data["words"])
-            page_bboxes.extend(_to_pixel_bboxes(line_bboxes, page_data["page"], img_w, img_h))
+        # Skip bboxes covering >86% of the page — likely fallback artifacts
+        if (norm_y2 - norm_y0) > 0.86:
+            continue
 
-    # Strategy 2: spatial overlap using node's page_bboxes region
+        words = await bbox_repo.get_words_in_spatial_region(
+            document_id, pg, norm_y0, norm_y2,
+        )
+        if words:
+            line_bboxes = _group_words_into_line_bboxes(words)
+            page_bboxes.extend(_to_pixel_bboxes(line_bboxes, pg, img_w, img_h))
+
+    # Strategy 2 (backup): char offset range
     if not page_bboxes:
-        node_page_bboxes = node.get("page_bboxes", [])
-        for pb in node_page_bboxes:
-            pg = pb["page"]
-            bbox = pb["bbox"]
-            norm_y0 = bbox["y0"] / img_h if img_h else 0
-            norm_y2 = bbox["y2"] / img_h if img_h else 1
+        start_char = node.get("start_char", -1)
+        end_char = node.get("end_char", -1)
+        if start_char >= 0 and end_char > start_char:
+            page_results = await bbox_repo.get_words_in_range(document_id, start_char, end_char)
+            for page_data in page_results:
+                line_bboxes = _group_words_into_line_bboxes(page_data["words"])
+                page_bboxes.extend(_to_pixel_bboxes(line_bboxes, page_data["page"], img_w, img_h))
 
-            # Skip bboxes covering >90% of the page — likely fallback artifacts
-            if (norm_y2 - norm_y0) > 0.90:
-                continue
-
-            words = await bbox_repo.get_words_in_spatial_region(
-                document_id, pg, norm_y0, norm_y2,
-            )
-            if words:
-                line_bboxes = _group_words_into_line_bboxes(words)
-                page_bboxes.extend(_to_pixel_bboxes(line_bboxes, pg, img_w, img_h))
-
-    # Strategy 3: raw section-level page_bboxes (last resort)
+    # Strategy 3 (last resort): raw section-level page_bboxes
     if not page_bboxes:
-        page_bboxes = node.get("page_bboxes", [])
+        page_bboxes = node_page_bboxes
 
     return {
         "node_id": node.get("id"),
