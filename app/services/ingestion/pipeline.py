@@ -23,12 +23,14 @@ class IngestionPipeline:
         metadata_extractor=None,
         file_storage=None,
         document_repo=None,
+        ocr_bbox_repo=None,
     ):
         self.parser_factory = parser_factory
         self.processor = processor
         self.metadata_extractor = metadata_extractor
         self.file_storage = file_storage
         self.document_repo = document_repo
+        self.ocr_bbox_repo = ocr_bbox_repo
 
     async def run(
         self,
@@ -89,6 +91,17 @@ class IngestionPipeline:
             )
             markdown = markdown_result.get("markdown", "")
             page_bbox_map = markdown_result.get("page_bbox_map", [])
+            # Persist word-level OCR bounding boxes (if repo available)
+            word_bboxes = markdown_result.get("word_bboxes", [])
+            if self.ocr_bbox_repo and word_bboxes:
+                await _step("Saving word-level bounding boxes...")
+                for page_entry in word_bboxes:
+                    await self.ocr_bbox_repo.save_page(
+                        document_id=document_id,
+                        page=page_entry["page"],
+                        words=page_entry["words"],
+                    )
+                logger.info(f"[{document_id[:8]}] Saved word bboxes for {len(word_bboxes)} pages")
             logger.info(f"[{document_id[:8]}] page_bbox_map has {len(page_bbox_map)} entries"
                         + (f", first: page={page_bbox_map[0]['page']}, bbox={page_bbox_map[0]['bbox']}" if page_bbox_map else ""))
 
