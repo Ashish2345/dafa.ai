@@ -8,6 +8,8 @@ from typing import Optional
 
 from loguru import logger
 
+from app.config.plan_loader import plan_catalog
+
 
 class UserRepository:
     """CRUD operations for the `users` MongoDB collection."""
@@ -43,12 +45,13 @@ class UserRepository:
             "full_name": full_name,
             "role": role,
             "is_active": True,
+            "plan": plan_catalog.default_plan_id,
             "created_at": now,
             "updated_at": now,
         }
 
         await self.collection.insert_one(user_doc)
-        logger.info(f"Created user: {email}")
+        logger.info(f"Created user: {email} (plan: {user_doc['plan']})")
 
         return self._to_public(user_doc)
 

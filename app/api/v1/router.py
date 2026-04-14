@@ -1,27 +1,45 @@
 """
 Main router for API v1 endpoints.
-6 route groups: health, auth, documents, query, waitlist, user preferences.
+
+Endpoint structure:
+  endpoints/
+    auth/          → login, register, refresh, me
+    documents/     → upload, list, CRUD, images, highlights
+    query/         → ask questions, streaming
+    user/          → chats, preferences, starred, usage, plans, feedback
+    health.py      → health check (public)
+    waitlist.py    → waitlist signup (public)
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, chats, documents, feedback, health, highlights, plans, preferences, query, query_stream, starred, usage
+
+from app.api.v1.endpoints import auth, documents, query
+from app.api.v1.endpoints.user import (
+    chats_router,
+    feedback_router,
+    plans_router,
+    preferences_router,
+    starred_router,
+    usage_router,
+)
+from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.waitlist import router as waitlist_router
 
 api_router = APIRouter()
 
 # Public routes
-api_router.include_router(health.router)
+api_router.include_router(health_router)
 api_router.include_router(auth.router)
 api_router.include_router(waitlist_router)
 
 # Protected routes (require JWT)
 api_router.include_router(documents.router)
-api_router.include_router(highlights.router)
+api_router.include_router(documents.highlights_router)
 api_router.include_router(query.router)
-api_router.include_router(query_stream.router)
-api_router.include_router(preferences.router)
-api_router.include_router(starred.router)
-api_router.include_router(chats.router)
-api_router.include_router(feedback.router)
-api_router.include_router(plans.router)
-api_router.include_router(usage.router)
+api_router.include_router(query.stream_router)
+api_router.include_router(preferences_router)
+api_router.include_router(starred_router)
+api_router.include_router(chats_router)
+api_router.include_router(feedback_router)
+api_router.include_router(plans_router)
+api_router.include_router(usage_router)
