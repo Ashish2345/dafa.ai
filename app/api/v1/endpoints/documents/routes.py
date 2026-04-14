@@ -252,10 +252,15 @@ async def get_document_pdf(
     # Count this download against the user's daily quota
     await usage_repo.increment(user_id, "pdf_download")
 
+    original_name = pdf_meta.get("original_filename", "document.pdf")
+    # RFC 5987: use filename* for non-ASCII names, ASCII fallback for filename
+    from urllib.parse import quote
+    ascii_name = original_name.encode("ascii", "ignore").decode("ascii") or "document.pdf"
+    utf8_name = quote(original_name, safe="")
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{pdf_meta.get("original_filename", "document.pdf")}"'},
+        headers={"Content-Disposition": f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"},
     )
 
 
