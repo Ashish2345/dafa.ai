@@ -82,6 +82,7 @@ class PageIndexStrategy(RetrievalStrategy):
                             "section": section.get("title", ""),
                             "node_id": section["nodeId"],
                             "node_int_id": section.get("int_id"),
+                            "page_bboxes": section.get("page_bboxes", []),
                         },
                         score=1.0 - (idx * 0.1),
                         metadata={
