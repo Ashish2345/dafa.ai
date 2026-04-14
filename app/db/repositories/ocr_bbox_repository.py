@@ -61,6 +61,33 @@ class OcrBboxRepository:
                 })
         return result
 
+    async def get_words_in_spatial_region(
+        self,
+        document_id: str,
+        page: int,
+        y0: float,
+        y2: float,
+    ) -> list[dict]:
+        """Return words on a specific page whose y-center falls within [y0, y2].
+
+        Coordinates are normalized 0-1. Used when char offsets are unavailable
+        but we have the section's approximate spatial region from page_bboxes.
+        """
+        doc = await self.collection.find_one(
+            {"document_id": document_id, "page": page},
+            {"_id": 0, "words": 1},
+        )
+        if not doc:
+            return []
+
+        words = []
+        for w in doc.get("words", []):
+            # Check if word's vertical center is within the region
+            word_y_center = (w.get("y0", 0) + w.get("y2", 0)) / 2
+            if y0 <= word_y_center <= y2:
+                words.append(w)
+        return words
+
     async def delete_document(self, document_id: str) -> None:
         """Delete all page bbox data for a document."""
         await self.collection.delete_many({"document_id": document_id})

@@ -4,8 +4,10 @@ Highlights endpoint — returns word-level bounding boxes for citation highlight
 Returns data in the shape the frontend expects:
   { highlights: [{ node_id, title, page_bboxes: [{ page, bbox }] }], image_dimensions }
 
-When word-level OCR data is available, each line gets its own page_bboxes entry
-(tight per-line highlights). Falls back to section-level page_bboxes from the tree.
+Strategy:
+  1. If node has start_char/end_char → find words by character offset range
+  2. Else if node has page_bboxes → find words by spatial overlap (y-range per page)
+  3. Else → return the section-level page_bboxes as-is (last resort)
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -29,11 +31,7 @@ def _find_node_by_int_id(nodes: list[dict], int_id: int) -> dict | None:
 
 
 def _group_words_into_line_bboxes(words: list[dict]) -> list[dict]:
-    """Group words by (block, line) and return per-line bboxes.
-
-    Returns list of {"page": int, "bbox": {"x0", "y0", "x2", "y2"}}
-    with one entry per line (not per section).
-    """
+    """Group words by (block, line) and return per-line bboxes (normalized 0-1)."""
     line_map: dict[tuple[int, int], list[dict]] = {}
     for w in words:
         key = (w.get("block", 0), w.get("line", 0))
@@ -50,24 +48,32 @@ def _group_words_into_line_bboxes(words: list[dict]) -> list[dict]:
     return line_bboxes
 
 
+def _to_pixel_bboxes(line_bboxes: list[dict], page: int, img_w: float, img_h: float) -> list[dict]:
+    """Convert normalized 0-1 bboxes to pixel coordinates for the frontend."""
+    return [
+        {
+            "page": page,
+            "bbox": {
+                "x0": b["x0"] * img_w,
+                "y0": b["y0"] * img_h,
+                "x2": b["x2"] * img_w,
+                "y2": b["y2"] * img_h,
+            },
+        }
+        for b in line_bboxes
+    ]
+
+
 @router.get("/{document_id}/highlights")
 async def get_highlights(
     document_id: str,
     node_ids: int | None = Query(None, description="Integer node ID (depth-first)"),
-    node_id: str | None = Query(None, description="String nodeId (e.g. '2.1')"),
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
 ):
-    """Return bounding boxes for citation highlighting.
-
-    Response shape matches frontend HighlightsResponse:
-    { highlights: [{ node_id, title, page_bboxes }], image_dimensions }
-    """
-    if node_ids is None and node_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide either node_ids (int) or node_id (string)",
-        )
+    """Return bounding boxes for citation highlighting."""
+    if node_ids is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="node_ids required")
 
     tree_doc = await db.page_index_trees.find_one(
         {"document_id": document_id},
@@ -78,49 +84,51 @@ async def get_highlights(
 
     image_dimensions = tree_doc.get("image_dimensions")
     nodes = tree_doc.get("tree", {}).get("nodes", [])
-
-    node = _find_node_by_int_id(nodes, node_ids) if node_ids is not None else None
+    node = _find_node_by_int_id(nodes, node_ids)
     if not node:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Node not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Node not found")
 
-    node_int_id = node.get("id", node_ids)
-    title = node.get("title", "")
+    img_w = image_dimensions.get("width", 1) if image_dimensions else 1
+    img_h = image_dimensions.get("height", 1) if image_dimensions else 1
+    bbox_repo = OcrBboxRepository(db)
+
+    page_bboxes: list[dict] = []
+
     start_char = node.get("start_char", -1)
     end_char = node.get("end_char", -1)
 
-    # Try word-level bboxes first (precise per-line highlights)
-    # Word bboxes are normalized 0-1, but the frontend expects pixel coordinates
-    # (it divides by image_dimensions to get 0-1). So multiply by dimensions.
-    img_w = image_dimensions.get("width", 1) if image_dimensions else 1
-    img_h = image_dimensions.get("height", 1) if image_dimensions else 1
-
-    page_bboxes = []
-    if start_char >= 0 and end_char >= 0:
-        bbox_repo = OcrBboxRepository(db)
+    # Strategy 1: char offset range (most precise)
+    if start_char >= 0 and end_char > start_char:
         page_results = await bbox_repo.get_words_in_range(document_id, start_char, end_char)
-
         for page_data in page_results:
             line_bboxes = _group_words_into_line_bboxes(page_data["words"])
-            for bbox in line_bboxes:
-                page_bboxes.append({
-                    "page": page_data["page"],
-                    "bbox": {
-                        "x0": bbox["x0"] * img_w,
-                        "y0": bbox["y0"] * img_h,
-                        "x2": bbox["x2"] * img_w,
-                        "y2": bbox["y2"] * img_h,
-                    },
-                })
+            page_bboxes.extend(_to_pixel_bboxes(line_bboxes, page_data["page"], img_w, img_h))
 
-    # Fallback: use section-level page_bboxes from tree node
+    # Strategy 2: spatial overlap using node's page_bboxes region
+    if not page_bboxes:
+        node_page_bboxes = node.get("page_bboxes", [])
+        for pb in node_page_bboxes:
+            pg = pb["page"]
+            bbox = pb["bbox"]
+            # page_bboxes bbox values are in pixel coords — normalize to 0-1
+            norm_y0 = bbox["y0"] / img_h if img_h else 0
+            norm_y2 = bbox["y2"] / img_h if img_h else 1
+            words = await bbox_repo.get_words_in_spatial_region(
+                document_id, pg, norm_y0, norm_y2,
+            )
+            if words:
+                line_bboxes = _group_words_into_line_bboxes(words)
+                page_bboxes.extend(_to_pixel_bboxes(line_bboxes, pg, img_w, img_h))
+
+    # Strategy 3: raw section-level page_bboxes (last resort)
     if not page_bboxes:
         page_bboxes = node.get("page_bboxes", [])
 
     return {
         "highlights": [
             {
-                "node_id": node_int_id,
-                "title": title,
+                "node_id": node.get("id", node_ids),
+                "title": node.get("title", ""),
                 "page_bboxes": page_bboxes,
             }
         ],
