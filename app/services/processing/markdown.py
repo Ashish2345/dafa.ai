@@ -68,6 +68,7 @@ class DocumentProcessor:
 
         # Single parse: build all output from _convert_to_markdown_with_bboxes
         full_markdown, page_bbox_map = self._convert_to_markdown_with_bboxes(parsed_result)
+        word_bboxes = self._extract_word_bboxes(parsed_result, full_markdown, page_bbox_map)
 
         pages = parsed_result.get("pages", [])
         tables = parsed_result.get("tables", [])
@@ -108,6 +109,7 @@ class DocumentProcessor:
             "fields": fields,
             "metadata": metadata,
             "page_bbox_map": page_bbox_map,
+            "word_bboxes": word_bboxes,
         }
 
     def _convert_to_markdown(self, parsed_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -244,6 +246,63 @@ class DocumentProcessor:
 
         full_markdown = PAGE_SEPARATOR.join(page_markdown_parts)
         return full_markdown, page_bbox_map
+
+    def _extract_word_bboxes(
+        self,
+        parsed_result: dict,
+        full_markdown: str,
+        page_bbox_map: list[dict],
+    ) -> list[dict]:
+        """Extract word-level bounding boxes with character offsets.
+
+        Uses the cleaned OCR DataFrames (which retain word-level x0/y0/x2/y2)
+        and maps each word to its approximate character offset in the full
+        markdown string using the page_bbox_map for page-level start_char.
+
+        Returns:
+            List of dicts, one per page:
+            [{"page": 1, "words": [{"text": ..., "x0": ..., "char_offset": ...}, ...]}, ...]
+        """
+        cleaned_ocr = parsed_result.get("cleaned_ocr", [])
+        pages_data = parsed_result.get("pages", [])
+        result = []
+
+        for page_idx, ocr_df in enumerate(cleaned_ocr):
+            if ocr_df.empty:
+                continue
+
+            page_number = pages_data[page_idx]["page_number"] if page_idx < len(pages_data) else page_idx + 1
+
+            # Find this page's start_char from page_bbox_map
+            page_start_char = 0
+            for entry in page_bbox_map:
+                if entry["page"] == page_number:
+                    page_start_char = entry["start_char"]
+                    break
+
+            # Build word list from OCR DataFrame
+            words = []
+            running_offset = page_start_char
+            for _, row in ocr_df.iterrows():
+                text = str(row.get("Text", "")).strip()
+                if not text:
+                    continue
+                words.append({
+                    "text": text,
+                    "x0": float(row["x0"]),
+                    "y0": float(row["y0"]),
+                    "x2": float(row["x2"]),
+                    "y2": float(row["y2"]),
+                    "block": int(row.get("block", 0)),
+                    "line": int(row.get("line", 0)),
+                    "char_offset": running_offset,
+                })
+                running_offset += len(text) + 1
+
+            if words:
+                result.append({"page": page_number, "words": words})
+
+        return result
 
     def _convert_page_to_markdown(
         self,
