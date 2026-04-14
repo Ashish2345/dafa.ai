@@ -197,13 +197,13 @@ class TreeBuilder:
     ) -> None:
         """Record start_char/end_char for each node so text extraction is a simple slice.
 
-        Strategy: collect all node titles, find them in the markdown as plain text,
-        then each node's extent runs from its title to the next node's title (or EOF).
+        Two-pass approach:
+          Pass 1: Assign start_char to every node by searching for its title in
+                  the markdown, constrained to the node's page_range region.
+          Pass 2: Collect all assigned start_chars as boundary positions, then
+                  set each node's end_char to the next boundary (or EOF).
 
-        When page_bbox_map is provided, title searches are constrained to the
-        markdown region matching the node's page_range. This prevents duplicate
-        titles (e.g. two 'Tax Rates' on different pages) from all mapping to the
-        first occurrence.
+        This avoids matching body-text mentions of titles as boundaries.
         """
         # Build page → char range lookup for constraining searches
         page_char_ranges: dict[int, tuple[int, int]] = {}
@@ -211,22 +211,12 @@ class TreeBuilder:
             for entry in page_bbox_map:
                 page_char_ranges[entry["page"]] = (entry["start_char"], entry["end_char"])
 
-        # Collect all titles across the entire tree (flat) for boundary detection
-        all_titles = self._collect_all_titles(nodes)
+        # Pass 1: assign start_char to each node
+        self._assign_start_chars(nodes, markdown, page_char_ranges)
 
-        # Find positions of all titles in the markdown (for boundary detection)
-        title_positions: list[int] = []
-        for t in all_titles:
-            escaped = re.escape(t)
-            # Find ALL occurrences, not just the first
-            for m in re.finditer(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE):
-                title_positions.append(m.start())
-            if not any(re.finditer(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE)):
-                for m in re.finditer(escaped, markdown, re.IGNORECASE):
-                    title_positions.append(m.start())
-        title_positions = sorted(set(title_positions))
-
-        self._assign_char_offsets_recursive(nodes, markdown, title_positions, page_char_ranges)
+        # Pass 2: collect all start positions, then assign end_char
+        all_starts = sorted(set(self._collect_start_chars(nodes)))
+        self._assign_end_chars(nodes, markdown, all_starts)
 
     @staticmethod
     def _collect_all_titles(nodes: list) -> list[str]:
@@ -239,72 +229,80 @@ class TreeBuilder:
             titles.extend(TreeBuilder._collect_all_titles(node.get("children", [])))
         return titles
 
-    def _assign_char_offsets_recursive(
-        self,
-        nodes: list,
-        markdown: str,
-        title_positions: list[int],
-        page_char_ranges: dict[int, tuple[int, int]],
-    ) -> None:
-        """Assign start_char/end_char for each node using title search + boundary detection.
+    def _get_page_region(
+        self, node: dict, page_char_ranges: dict[int, tuple[int, int]], md_len: int,
+    ) -> tuple[int, int]:
+        """Return (region_start, region_end) in the markdown for this node's page_range."""
+        page_range = node.get("page_range", [])
+        if not page_char_ranges or not page_range:
+            return 0, md_len
+        first_page = page_range[0]
+        last_page = page_range[-1] if len(page_range) >= 2 else first_page
+        starts, ends = [], []
+        for pg in range(first_page, last_page + 1):
+            if pg in page_char_ranges:
+                s, e = page_char_ranges[pg]
+                starts.append(s)
+                ends.append(e)
+        if starts:
+            return min(starts), max(ends)
+        return 0, md_len
 
-        When page_char_ranges is available, title search is constrained to the
-        markdown region for the node's page_range, preventing duplicate titles
-        from colliding.
-        """
+    def _assign_start_chars(
+        self, nodes: list, markdown: str, page_char_ranges: dict[int, tuple[int, int]],
+    ) -> None:
+        """Pass 1: find each node's title in its page region and set start_char."""
         for node in nodes:
             title = node.get("title", "").strip()
             if not title:
                 node["start_char"] = -1
                 node["end_char"] = -1
-                self._assign_char_offsets_recursive(
-                    node.get("children", []), markdown, title_positions, page_char_ranges,
-                )
+                self._assign_start_chars(node.get("children", []), markdown, page_char_ranges)
                 continue
 
             escaped = re.escape(title)
-
-            # Determine search region from node's page_range (if available)
-            page_range = node.get("page_range", [])
-            region_start = 0
-            region_end = len(markdown)
-            if page_char_ranges and page_range:
-                first_page = page_range[0]
-                last_page = page_range[-1] if len(page_range) >= 2 else first_page
-                starts = []
-                ends = []
-                for pg in range(first_page, last_page + 1):
-                    if pg in page_char_ranges:
-                        s, e = page_char_ranges[pg]
-                        starts.append(s)
-                        ends.append(e)
-                if starts:
-                    region_start = min(starts)
-                    region_end = max(ends)
-
-            # Search within the page-constrained region
+            region_start, region_end = self._get_page_region(node, page_char_ranges, len(markdown))
             region_text = markdown[region_start:region_end]
+
             match = re.search(rf"(#{1,6}[^\n]*{escaped})", region_text, re.IGNORECASE)
             if not match:
                 match = re.search(escaped, region_text, re.IGNORECASE)
 
             if match:
-                start = region_start + match.start()
-                # End = next title's position after this one, or end of region
-                end = region_end
-                for pos in title_positions:
-                    if pos > start + len(title):
-                        end = pos
-                        break
-                node["start_char"] = start
-                node["end_char"] = min(end, start + 8000)
+                node["start_char"] = region_start + match.start()
             else:
                 node["start_char"] = -1
+
+            node["end_char"] = -1  # filled in pass 2
+            self._assign_start_chars(node.get("children", []), markdown, page_char_ranges)
+
+    def _collect_start_chars(self, nodes: list) -> list[int]:
+        """Collect all assigned start_char values from the tree (for boundary detection)."""
+        result = []
+        for node in nodes:
+            sc = node.get("start_char", -1)
+            if sc >= 0:
+                result.append(sc)
+            result.extend(self._collect_start_chars(node.get("children", [])))
+        return result
+
+    def _assign_end_chars(self, nodes: list, markdown: str, all_starts: list[int]) -> None:
+        """Pass 2: set end_char = next node's start_char (from all_starts), capped at 8000."""
+        for node in nodes:
+            start = node.get("start_char", -1)
+            if start >= 0:
+                # Find the next boundary after this node's title
+                end = len(markdown)
+                title_len = len(node.get("title", ""))
+                for pos in all_starts:
+                    if pos > start + title_len:
+                        end = pos
+                        break
+                node["end_char"] = min(end, start + 8000)
+            else:
                 node["end_char"] = -1
 
-            self._assign_char_offsets_recursive(
-                node.get("children", []), markdown, title_positions, page_char_ranges,
-            )
+            self._assign_end_chars(node.get("children", []), markdown, all_starts)
 
     def _parse_json_response(self, response: str) -> Any:
         """Strip markdown fences and parse JSON, tolerating trailing garbage."""
