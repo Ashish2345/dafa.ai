@@ -181,6 +181,44 @@ class MongoDB:
             page_index_content = self.database.page_index_content
             await page_index_content.create_index("document_id", unique=True)
 
+            # Word-level OCR bounding boxes — one doc per (document, page)
+            page_ocr_bboxes = self.database.page_ocr_bboxes
+            await page_ocr_bboxes.create_index(
+                [("document_id", 1), ("page", 1)],
+                unique=True,
+            )
+            await page_ocr_bboxes.create_index("document_id")
+
+            # User preferences — one document per user
+            user_preferences = self.database.user_preferences
+            await user_preferences.create_index("user_id", unique=True)
+
+            # Starred responses — per-user, fetched newest-first + looked up by (user, workspace, query)
+            starred_responses = self.database.starred_responses
+            await starred_responses.create_index("id", unique=True)
+            await starred_responses.create_index([("user_id", 1), ("starred_at", -1)])
+            await starred_responses.create_index([("user_id", 1), ("workspace_id", 1), ("query", 1)])
+
+            # Chat conversations — sidebar list, one doc per (user, workspace)
+            chat_conversations = self.database.chat_conversations
+            await chat_conversations.create_index([("user_id", 1), ("workspace_id", 1)], unique=True)
+            await chat_conversations.create_index([("user_id", 1), ("last_activity_at", -1)])
+
+            # Chat messages — one doc per (user, workspace), messages stored as array
+            chat_messages = self.database.chat_messages
+            await chat_messages.create_index([("user_id", 1), ("workspace_id", 1)], unique=True)
+
+            # Feedback — for triage and per-user history
+            feedback = self.database.feedback
+            await feedback.create_index("id", unique=True)
+            await feedback.create_index([("user_id", 1), ("created_at", -1)])
+            await feedback.create_index([("status", 1), ("created_at", -1)])
+
+            # Daily usage counters — one doc per (user, day)
+            usage_counters = self.database.usage_counters
+            await usage_counters.create_index([("user_id", 1), ("date", 1)], unique=True)
+            await usage_counters.create_index([("date", 1)])  # for cleanup jobs
+
             logger.info("Successfully created MongoDB indexes")
 
         except Exception as e:
