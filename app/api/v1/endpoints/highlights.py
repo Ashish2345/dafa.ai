@@ -1,5 +1,11 @@
 """
 Highlights endpoint — returns word-level bounding boxes for citation highlighting.
+
+Returns data in the shape the frontend expects:
+  { highlights: [{ node_id, title, page_bboxes: [{ page, bbox }] }], image_dimensions }
+
+When word-level OCR data is available, each line gets its own page_bboxes entry
+(tight per-line highlights). Falls back to section-level page_bboxes from the tree.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -22,39 +28,26 @@ def _find_node_by_int_id(nodes: list[dict], int_id: int) -> dict | None:
     return None
 
 
-def _find_node_by_node_id(nodes: list[dict], node_id: str) -> dict | None:
-    """Recursively find a node by its string nodeId (e.g. '2.1')."""
-    for node in nodes:
-        if node.get("nodeId") == node_id:
-            return node
-        found = _find_node_by_node_id(node.get("children", []), node_id)
-        if found:
-            return found
-    return None
+def _group_words_into_line_bboxes(words: list[dict]) -> list[dict]:
+    """Group words by (block, line) and return per-line bboxes.
 
-
-def _group_words_by_line(words: list[dict]) -> list[dict]:
-    """Group words by (block, line) and compute per-line bounding boxes."""
+    Returns list of {"page": int, "bbox": {"x0", "y0", "x2", "y2"}}
+    with one entry per line (not per section).
+    """
     line_map: dict[tuple[int, int], list[dict]] = {}
     for w in words:
         key = (w.get("block", 0), w.get("line", 0))
         line_map.setdefault(key, []).append(w)
 
-    lines = []
-    for (block, line), line_words in sorted(line_map.items()):
-        bbox = {
+    line_bboxes = []
+    for (_block, _line), line_words in sorted(line_map.items()):
+        line_bboxes.append({
             "x0": min(w["x0"] for w in line_words),
             "y0": min(w["y0"] for w in line_words),
             "x2": max(w["x2"] for w in line_words),
             "y2": max(w["y2"] for w in line_words),
-        }
-        lines.append({
-            "line": line,
-            "block": block,
-            "bbox": bbox,
-            "words": line_words,
         })
-    return lines
+    return line_bboxes
 
 
 @router.get("/{document_id}/highlights")
@@ -65,9 +58,10 @@ async def get_highlights(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
 ):
-    """Return word-level bounding boxes for a specific section.
+    """Return bounding boxes for citation highlighting.
 
-    Accepts either node_ids (integer, depth-first ID) or node_id (string, dot-notation).
+    Response shape matches frontend HighlightsResponse:
+    { highlights: [{ node_id, title, page_bboxes }], image_dimensions }
     """
     if node_ids is None and node_id is None:
         raise HTTPException(
@@ -77,42 +71,58 @@ async def get_highlights(
 
     tree_doc = await db.page_index_trees.find_one(
         {"document_id": document_id},
-        {"tree.nodes": 1, "_id": 0},
+        {"tree.nodes": 1, "image_dimensions": 1, "_id": 0},
     )
     if not tree_doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
+    image_dimensions = tree_doc.get("image_dimensions")
     nodes = tree_doc.get("tree", {}).get("nodes", [])
 
-    # Look up by integer ID or string nodeId
-    if node_ids is not None:
-        node = _find_node_by_int_id(nodes, node_ids)
-        lookup_label = str(node_ids)
-    else:
-        node = _find_node_by_node_id(nodes, node_id)
-        lookup_label = node_id
-
+    node = _find_node_by_int_id(nodes, node_ids) if node_ids is not None else None
     if not node:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Node '{lookup_label}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Node not found")
 
+    node_int_id = node.get("id", node_ids)
+    title = node.get("title", "")
     start_char = node.get("start_char", -1)
     end_char = node.get("end_char", -1)
-    if start_char < 0 or end_char < 0:
-        return {"document_id": document_id, "node_id": node.get("nodeId", lookup_label), "highlights": []}
 
-    bbox_repo = OcrBboxRepository(db)
-    page_results = await bbox_repo.get_words_in_range(document_id, start_char, end_char)
+    # Try word-level bboxes first (precise per-line highlights)
+    # Word bboxes are normalized 0-1, but the frontend expects pixel coordinates
+    # (it divides by image_dimensions to get 0-1). So multiply by dimensions.
+    img_w = image_dimensions.get("width", 1) if image_dimensions else 1
+    img_h = image_dimensions.get("height", 1) if image_dimensions else 1
 
-    highlights = []
-    for page_data in page_results:
-        lines = _group_words_by_line(page_data["words"])
-        highlights.append({
-            "page": page_data["page"],
-            "lines": lines,
-        })
+    page_bboxes = []
+    if start_char >= 0 and end_char >= 0:
+        bbox_repo = OcrBboxRepository(db)
+        page_results = await bbox_repo.get_words_in_range(document_id, start_char, end_char)
+
+        for page_data in page_results:
+            line_bboxes = _group_words_into_line_bboxes(page_data["words"])
+            for bbox in line_bboxes:
+                page_bboxes.append({
+                    "page": page_data["page"],
+                    "bbox": {
+                        "x0": bbox["x0"] * img_w,
+                        "y0": bbox["y0"] * img_h,
+                        "x2": bbox["x2"] * img_w,
+                        "y2": bbox["y2"] * img_h,
+                    },
+                })
+
+    # Fallback: use section-level page_bboxes from tree node
+    if not page_bboxes:
+        page_bboxes = node.get("page_bboxes", [])
 
     return {
-        "document_id": document_id,
-        "node_id": node.get("nodeId", lookup_label),
-        "highlights": highlights,
+        "highlights": [
+            {
+                "node_id": node_int_id,
+                "title": title,
+                "page_bboxes": page_bboxes,
+            }
+        ],
+        "image_dimensions": image_dimensions,
     }
