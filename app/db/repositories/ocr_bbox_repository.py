@@ -42,9 +42,20 @@ class OcrBboxRepository:
         start_char: int,
         end_char: int,
     ) -> list[dict]:
-        """Return word bboxes within a character offset range, grouped by page."""
+        """Return word bboxes within a character offset range, grouped by page.
+
+        Uses MongoDB $elemMatch to pre-filter pages that contain at least one
+        word in range, reducing data transfer for large documents.
+        """
         cursor = self.collection.find(
-            {"document_id": document_id},
+            {
+                "document_id": document_id,
+                "words": {
+                    "$elemMatch": {
+                        "char_offset": {"$gte": start_char, "$lt": end_char}
+                    }
+                },
+            },
             {"_id": 0, "page": 1, "words": 1},
         ).sort("page", 1)
 

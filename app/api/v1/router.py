@@ -4,7 +4,7 @@ Main router for API v1 endpoints.
 """
 
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, chats, documents, feedback, health, highlights, plans, preferences, query, starred, usage
+from app.api.v1.endpoints import auth, chats, documents, feedback, health, highlights, plans, preferences, query, query_stream, starred, usage
 from app.api.v1.endpoints.waitlist import router as waitlist_router
 
 api_router = APIRouter()
@@ -18,6 +18,7 @@ api_router.include_router(waitlist_router)
 api_router.include_router(documents.router)
 api_router.include_router(highlights.router)
 api_router.include_router(query.router)
+api_router.include_router(query_stream.router)
 api_router.include_router(preferences.router)
 api_router.include_router(starred.router)
 api_router.include_router(chats.router)
