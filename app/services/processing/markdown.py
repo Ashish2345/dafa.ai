@@ -289,19 +289,32 @@ class DocumentProcessor:
             page_md = full_markdown[page_start_char:page_end_char]
 
             # Build word list — find each word sequentially in the page markdown
-            # for accurate char_offsets instead of a running counter
+            # for accurate char_offsets instead of a running counter.
+            # Uses forward-only cursor but tries nearby matches for duplicate words.
             words = []
             search_cursor = 0  # position within page_md
+            page_md_lower = page_md.lower()
             for _, row in ocr_df.iterrows():
                 text = str(row.get("Text", "")).strip()
                 if not text:
                     continue
 
-                # Search forward from cursor for this word in the page markdown
+                x0 = float(row["x0"])
+                y0 = float(row["y0"])
+                x2 = float(row["x2"])
+                y2 = float(row["y2"])
+
+                # Validate coordinates are normalized 0-1
+                if x2 > 1.5 or y2 > 1.5:
+                    # Likely pixel coords — skip (shouldn't happen with proper OCR)
+                    logger.warning(f"Word '{text}' has non-normalized coords x2={x2}, y2={y2}, skipping")
+                    continue
+
+                # Search forward from cursor for this word
                 pos = page_md.find(text, search_cursor)
                 if pos == -1:
                     # Case-insensitive fallback
-                    pos = page_md.lower().find(text.lower(), search_cursor)
+                    pos = page_md_lower.find(text.lower(), search_cursor)
                 if pos >= 0:
                     char_offset = page_start_char + pos
                     search_cursor = pos + len(text)
@@ -311,10 +324,10 @@ class DocumentProcessor:
 
                 words.append({
                     "text": text,
-                    "x0": float(row["x0"]),
-                    "y0": float(row["y0"]),
-                    "x2": float(row["x2"]),
-                    "y2": float(row["y2"]),
+                    "x0": x0,
+                    "y0": y0,
+                    "x2": x2,
+                    "y2": y2,
                     "block": int(row.get("block", 0)),
                     "line": int(row.get("line", 0)),
                     "char_offset": char_offset,

@@ -92,6 +92,11 @@ async def _get_node_highlights(
             bbox = pb["bbox"]
             norm_y0 = bbox["y0"] / img_h if img_h else 0
             norm_y2 = bbox["y2"] / img_h if img_h else 1
+
+            # Skip bboxes covering >90% of the page — likely fallback artifacts
+            if (norm_y2 - norm_y0) > 0.90:
+                continue
+
             words = await bbox_repo.get_words_in_spatial_region(
                 document_id, pg, norm_y0, norm_y2,
             )

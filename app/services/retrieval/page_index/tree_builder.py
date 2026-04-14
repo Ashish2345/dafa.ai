@@ -238,6 +238,12 @@ class TreeBuilder:
             return 0, md_len
         first_page = page_range[0]
         last_page = page_range[-1] if len(page_range) >= 2 else first_page
+        # Clamp to valid page range
+        max_page = max(page_char_ranges.keys()) if page_char_ranges else 0
+        first_page = max(1, first_page)
+        last_page = min(last_page, max_page)
+        if first_page > last_page:
+            return 0, md_len
         starts, ends = [], []
         for pg in range(first_page, last_page + 1):
             if pg in page_char_ranges:
@@ -298,7 +304,7 @@ class TreeBuilder:
                     if pos > start + title_len:
                         end = pos
                         break
-                node["end_char"] = min(end, start + 8000)
+                node["end_char"] = end
             else:
                 node["end_char"] = -1
 
