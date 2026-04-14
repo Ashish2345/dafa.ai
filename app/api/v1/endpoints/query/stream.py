@@ -1,24 +1,8 @@
 """
 Streaming query endpoint — SSE progress events + final answer.
 
-Sends real-time status updates to the frontend as the query progresses
-through tree navigation, section extraction, and answer synthesis.
-
-Event format (Server-Sent Events):
-  event: status
-  data: {"step": "navigating", "message": "Finding relevant sections..."}
-
-  event: status
-  data: {"step": "extracting", "message": "Reading 5 sections..."}
-
-  event: status
-  data: {"step": "synthesizing", "message": "Generating answer..."}
-
-  event: done
-  data: {full QueryResponse JSON}
-
-  event: error
-  data: {"message": "..."}
+Breaks the query flow into granular steps so the frontend shows
+real-time progress as each phase completes.
 """
 
 import asyncio
@@ -35,10 +19,8 @@ from app.db.mongodb import get_database
 from app.db.repositories.usage_repository import UsageRepository
 from app.db.repositories.user_repository import UserRepository
 from app.services.llm import LLMService
-from app.services.retrieval.base import RetrievedChunk
 from app.services.retrieval.factory import RetrievalFactory
 from app.utils.auth import get_current_user
-from app.utils.exceptions import AppException
 
 router = APIRouter(prefix="/query", tags=["query"])
 
@@ -95,13 +77,20 @@ async def query_stream(
 
     async def event_generator():
         try:
-            # Step 1: Navigating document tree
+            # Step 1: Loading strategy and documents
             yield _sse_event("status", {
-                "step": "navigating",
-                "message": "Searching documents...",
+                "step": "loading",
+                "message": "Loading documents...",
             })
 
             strategy = await RetrievalFactory.get_strategy(request.strategy)
+
+            # Step 2: Navigating document tree (LLM call — the slow part)
+            yield _sse_event("status", {
+                "step": "navigating",
+                "message": "Navigating document tree...",
+            })
+
             chunks = await strategy.retrieve(
                 query=request.query,
                 top_k=request.top_k,
@@ -109,12 +98,26 @@ async def query_stream(
                 collection_name=request.collection_name,
             )
 
-            yield _sse_event("status", {
-                "step": "extracting",
-                "message": f"Found {len(chunks)} relevant sections",
-            })
+            if not chunks:
+                yield _sse_event("status", {
+                    "step": "extracting",
+                    "message": "No relevant sections found",
+                })
+            else:
+                # Collect document names for better status
+                doc_names = set()
+                for c in chunks:
+                    name = c.source.get("document_name", "")
+                    if name:
+                        doc_names.add(name)
+                doc_label = next(iter(doc_names), "document") if doc_names else "document"
 
-            # Step 2: Synthesize answer
+                yield _sse_event("status", {
+                    "step": "extracting",
+                    "message": f"Found {len(chunks)} sections in {doc_label}",
+                })
+
+            # Step 3: Synthesize answer (another LLM call)
             answer = ""
             if request.use_llm and chunks:
                 yield _sse_event("status", {
@@ -123,7 +126,8 @@ async def query_stream(
                 })
 
                 llm = LLMService()
-                answer = llm.synthesize(request.query, chunks)
+                # Run synthesis in thread so SSE events can flush
+                answer = await asyncio.to_thread(llm.synthesize, request.query, chunks)
 
             # Build response
             sources = [chunk.source for chunk in chunks]
