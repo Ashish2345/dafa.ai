@@ -56,10 +56,10 @@ def save_to_cache(document_id: str, tree_doc: dict, markdown: str) -> None:
         doc_dir = _doc_dir(document_id)
         doc_dir.mkdir(parents=True, exist_ok=True)
 
-        # Strip _id if present (not JSON serializable)
+        # Strip _id and convert datetimes (not JSON serializable)
         tree_data = {k: v for k, v in tree_doc.items() if k != "_id"}
         (doc_dir / "tree.json").write_text(
-            json.dumps(tree_data, ensure_ascii=False), encoding="utf-8",
+            json.dumps(tree_data, ensure_ascii=False, default=str), encoding="utf-8",
         )
         (doc_dir / "markdown.txt").write_text(markdown, encoding="utf-8")
         logger.info(f"Cached tree + markdown for {document_id[:8]}")
