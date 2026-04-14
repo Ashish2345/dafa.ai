@@ -12,3 +12,4 @@ data/
 
 .env
 data/
+.cache/

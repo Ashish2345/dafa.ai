@@ -12,6 +12,12 @@ from loguru import logger
 from app.db.repositories.page_index_repository import PageIndexRepository
 from app.services.llm import LLMService
 from app.services.retrieval.base import RetrievalStrategy, RetrievedChunk
+from app.services.retrieval.page_index.cache import (
+    get_cached_markdown,
+    get_cached_tree,
+    invalidate_cache,
+    save_to_cache,
+)
 from app.services.retrieval.page_index.section_retriever import SectionRetriever
 from app.services.retrieval.page_index.tree_builder import TreeBuilder
 
@@ -51,10 +57,18 @@ class PageIndexStrategy(RetrievalStrategy):
         all_chunks: list[RetrievedChunk] = []
 
         for doc_id in document_ids:
-            tree_doc = await self.repo.get_tree(doc_id)
-            markdown = await self.repo.get_markdown(doc_id)
+            # Try file cache first, fall back to MongoDB
+            tree_doc = get_cached_tree(doc_id)
+            markdown = get_cached_markdown(doc_id)
+
             if not tree_doc or not markdown:
-                continue
+                tree_doc = await self.repo.get_tree(doc_id)
+                markdown = await self.repo.get_markdown(doc_id)
+                if not tree_doc or not markdown:
+                    continue
+                # Cache for next time
+                save_to_cache(doc_id, tree_doc, markdown)
+
 
             tree = tree_doc.get("tree", {})
             language = tree_doc.get("language", "en")
@@ -106,6 +120,8 @@ class PageIndexStrategy(RetrievalStrategy):
         page_bbox_map: list[dict] | None = None,
         image_dimensions: dict | None = None,
     ) -> None:
+        # Invalidate file cache — will be rebuilt on first query
+        invalidate_cache(document_id)
         language = metadata.get("language", "en")
         logger.info(f"PageIndex ingesting document_id={document_id}")
 
