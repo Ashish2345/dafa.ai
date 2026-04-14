@@ -135,7 +135,7 @@ class PageIndexStrategy(RetrievalStrategy):
             tree = self.tree_builder._merge_trees(subtrees, language)
 
         tree["language"] = language
-        self.tree_builder._attach_char_offsets(tree.get("nodes", []), markdown)
+        self.tree_builder._attach_char_offsets(tree.get("nodes", []), markdown, page_bbox_map)
         TreeBuilder._assign_node_ids(tree["nodes"])
         logger.info(f"[{document_id[:8]}] page_bbox_map received: {len(page_bbox_map) if page_bbox_map else 'None'} entries")
         if page_bbox_map:

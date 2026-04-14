@@ -280,13 +280,35 @@ class DocumentProcessor:
                     page_start_char = entry["start_char"]
                     break
 
-            # Build word list from OCR DataFrame
+            # Find this page's end_char for extracting the page markdown slice
+            page_end_char = len(full_markdown)
+            for entry in page_bbox_map:
+                if entry["page"] == page_number:
+                    page_end_char = entry["end_char"]
+                    break
+            page_md = full_markdown[page_start_char:page_end_char]
+
+            # Build word list — find each word sequentially in the page markdown
+            # for accurate char_offsets instead of a running counter
             words = []
-            running_offset = page_start_char
+            search_cursor = 0  # position within page_md
             for _, row in ocr_df.iterrows():
                 text = str(row.get("Text", "")).strip()
                 if not text:
                     continue
+
+                # Search forward from cursor for this word in the page markdown
+                pos = page_md.find(text, search_cursor)
+                if pos == -1:
+                    # Case-insensitive fallback
+                    pos = page_md.lower().find(text.lower(), search_cursor)
+                if pos >= 0:
+                    char_offset = page_start_char + pos
+                    search_cursor = pos + len(text)
+                else:
+                    # Word not found — estimate from cursor position
+                    char_offset = page_start_char + search_cursor
+
                 words.append({
                     "text": text,
                     "x0": float(row["x0"]),
@@ -295,9 +317,8 @@ class DocumentProcessor:
                     "y2": float(row["y2"]),
                     "block": int(row.get("block", 0)),
                     "line": int(row.get("line", 0)),
-                    "char_offset": running_offset,
+                    "char_offset": char_offset,
                 })
-                running_offset += len(text) + 1
 
             if words:
                 result.append({"page": page_number, "words": words})

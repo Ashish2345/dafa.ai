@@ -192,13 +192,25 @@ class TreeBuilder:
             nodes.extend(t.get("nodes", []))
         return {"document_title": title, "language": language, "nodes": nodes}
 
-    def _attach_char_offsets(self, nodes: list, markdown: str) -> None:
+    def _attach_char_offsets(
+        self, nodes: list, markdown: str, page_bbox_map: list[dict] | None = None,
+    ) -> None:
         """Record start_char/end_char for each node so text extraction is a simple slice.
 
         Strategy: collect all node titles, find them in the markdown as plain text,
         then each node's extent runs from its title to the next node's title (or EOF).
-        This works for OCR markdown which has no heading markers.
+
+        When page_bbox_map is provided, title searches are constrained to the
+        markdown region matching the node's page_range. This prevents duplicate
+        titles (e.g. two 'Tax Rates' on different pages) from all mapping to the
+        first occurrence.
         """
+        # Build page → char range lookup for constraining searches
+        page_char_ranges: dict[int, tuple[int, int]] = {}
+        if page_bbox_map:
+            for entry in page_bbox_map:
+                page_char_ranges[entry["page"]] = (entry["start_char"], entry["end_char"])
+
         # Collect all titles across the entire tree (flat) for boundary detection
         all_titles = self._collect_all_titles(nodes)
 
@@ -206,15 +218,15 @@ class TreeBuilder:
         title_positions: list[int] = []
         for t in all_titles:
             escaped = re.escape(t)
-            # Try heading match first, then plain text
-            m = re.search(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE)
-            if not m:
-                m = re.search(escaped, markdown, re.IGNORECASE)
-            if m:
+            # Find ALL occurrences, not just the first
+            for m in re.finditer(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE):
                 title_positions.append(m.start())
+            if not any(re.finditer(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE)):
+                for m in re.finditer(escaped, markdown, re.IGNORECASE):
+                    title_positions.append(m.start())
         title_positions = sorted(set(title_positions))
 
-        self._assign_char_offsets_recursive(nodes, markdown, title_positions)
+        self._assign_char_offsets_recursive(nodes, markdown, title_positions, page_char_ranges)
 
     @staticmethod
     def _collect_all_titles(nodes: list) -> list[str]:
@@ -228,27 +240,58 @@ class TreeBuilder:
         return titles
 
     def _assign_char_offsets_recursive(
-        self, nodes: list, markdown: str, title_positions: list[int]
+        self,
+        nodes: list,
+        markdown: str,
+        title_positions: list[int],
+        page_char_ranges: dict[int, tuple[int, int]],
     ) -> None:
-        """Assign start_char/end_char for each node using title search + boundary detection."""
+        """Assign start_char/end_char for each node using title search + boundary detection.
+
+        When page_char_ranges is available, title search is constrained to the
+        markdown region for the node's page_range, preventing duplicate titles
+        from colliding.
+        """
         for node in nodes:
             title = node.get("title", "").strip()
             if not title:
                 node["start_char"] = -1
                 node["end_char"] = -1
-                self._assign_char_offsets_recursive(node.get("children", []), markdown, title_positions)
+                self._assign_char_offsets_recursive(
+                    node.get("children", []), markdown, title_positions, page_char_ranges,
+                )
                 continue
 
             escaped = re.escape(title)
-            # Try heading match first (## Title), then plain text match
-            match = re.search(rf"(#{1,6}[^\n]*{escaped})", markdown, re.IGNORECASE)
+
+            # Determine search region from node's page_range (if available)
+            page_range = node.get("page_range", [])
+            region_start = 0
+            region_end = len(markdown)
+            if page_char_ranges and page_range:
+                first_page = page_range[0]
+                last_page = page_range[-1] if len(page_range) >= 2 else first_page
+                starts = []
+                ends = []
+                for pg in range(first_page, last_page + 1):
+                    if pg in page_char_ranges:
+                        s, e = page_char_ranges[pg]
+                        starts.append(s)
+                        ends.append(e)
+                if starts:
+                    region_start = min(starts)
+                    region_end = max(ends)
+
+            # Search within the page-constrained region
+            region_text = markdown[region_start:region_end]
+            match = re.search(rf"(#{1,6}[^\n]*{escaped})", region_text, re.IGNORECASE)
             if not match:
-                match = re.search(escaped, markdown, re.IGNORECASE)
+                match = re.search(escaped, region_text, re.IGNORECASE)
 
             if match:
-                start = match.start()
-                # End = next title's position after this one, or EOF
-                end = len(markdown)
+                start = region_start + match.start()
+                # End = next title's position after this one, or end of region
+                end = region_end
                 for pos in title_positions:
                     if pos > start + len(title):
                         end = pos
@@ -259,7 +302,9 @@ class TreeBuilder:
                 node["start_char"] = -1
                 node["end_char"] = -1
 
-            self._assign_char_offsets_recursive(node.get("children", []), markdown, title_positions)
+            self._assign_char_offsets_recursive(
+                node.get("children", []), markdown, title_positions, page_char_ranges,
+            )
 
     def _parse_json_response(self, response: str) -> Any:
         """Strip markdown fences and parse JSON, tolerating trailing garbage."""
