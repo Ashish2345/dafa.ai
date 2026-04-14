@@ -19,6 +19,7 @@ from app.config.request_mapping import RequestConfigBuilder
 from app.db.mongodb import get_database
 from app.db.repositories.document_repository import DocumentRepository
 from app.db.repositories.file_storage import FileStorageRepository
+from app.db.repositories.ocr_bbox_repository import OcrBboxRepository
 from app.db.repositories.page_index_repository import PageIndexRepository
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.services.ingestion.processing import DocumentProcessor, MetadataExtractor
@@ -63,6 +64,7 @@ async def _run_ingestion_background(
             metadata_extractor=MetadataExtractor(language=language),
             file_storage=FileStorageRepository(db),
             document_repo=doc_repo,
+            ocr_bbox_repo=OcrBboxRepository(db),
         )
 
         result = await pipeline.run(
@@ -202,8 +204,41 @@ async def get_document_pdf(
     document_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    """Serve the original PDF from GridFS."""
+    """Serve the original PDF from GridFS. Enforces per-plan daily download quota."""
+    from fastapi import HTTPException
+    from app.config.plan_loader import plan_catalog
+    from app.db.repositories.usage_repository import UsageRepository
+    from app.db.repositories.user_repository import UserRepository
+
     db = await get_database()
+    user_id = current_user["sub"]
+
+    # ─── Plan quota enforcement ──────────────────────────────────────
+    user_doc = await UserRepository(db).get_by_id(user_id)
+    plan_id = (user_doc or {}).get("plan") or plan_catalog.default_plan_id
+    plan = plan_catalog.get(plan_id)
+
+    usage_repo = UsageRepository(db)
+    allowed, used, _ = await usage_repo.check_quota(
+        user_id, "pdf_download", plan.limits.pdf_downloads_per_day
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "plan_limit_reached",
+                "action": "pdf_download",
+                "plan_id": plan_id,
+                "plan_name": plan.name,
+                "limit": plan.limits.pdf_downloads_per_day,
+                "used": used,
+                "message": (
+                    f"You've used all {plan.limits.pdf_downloads_per_day} PDF downloads on your "
+                    f"{plan.name} plan today. Upgrade to continue downloading."
+                ),
+            },
+        )
+
     file_repo = FileStorageRepository(db)
     pdf_meta = await file_repo.get_pdf_by_document(document_id)
     if not pdf_meta:
@@ -213,6 +248,10 @@ async def get_document_pdf(
             message=f"PDF not found for document {document_id}",
         )
     pdf_bytes, _ = await file_repo.get_pdf(pdf_meta["file_id"])
+
+    # Count this download against the user's daily quota
+    await usage_repo.increment(user_id, "pdf_download")
+
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
