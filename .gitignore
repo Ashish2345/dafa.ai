@@ -16,3 +16,4 @@ tests/
 .env
 data/
 .cache/
+uploads/
