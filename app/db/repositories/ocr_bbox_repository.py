@@ -99,6 +99,23 @@ class OcrBboxRepository:
                 words.append(w)
         return words
 
+    async def get_page_words(
+        self,
+        document_id: str,
+        page: int,
+    ) -> list[dict]:
+        """Return every word on a single page (for PDF-style text selection overlay).
+
+        Each word has normalized 0-1 coordinates (x0/y0/x2/y2), ``text``, and
+        optional ``line``/``block`` metadata used downstream for reading-order
+        grouping.
+        """
+        doc = await self.collection.find_one(
+            {"document_id": document_id, "page": page},
+            {"_id": 0, "words": 1},
+        )
+        return doc.get("words", []) if doc else []
+
     async def delete_document(self, document_id: str) -> None:
         """Delete all page bbox data for a document."""
         await self.collection.delete_many({"document_id": document_id})

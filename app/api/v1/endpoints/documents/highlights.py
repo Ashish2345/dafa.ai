@@ -164,3 +164,49 @@ async def get_highlights(
         "highlights": all_highlights,
         "image_dimensions": image_dimensions,
     }
+
+
+@router.get("/{document_id}/page/{page_number}/words")
+async def get_page_words(
+    document_id: str,
+    page_number: int,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Return word-level OCR bboxes for a single page.
+
+    Used by the frontend to render a transparent text-selection overlay on
+    top of the page image (PDF.js-style drag-to-select + copy).
+
+    Response shape:
+        {
+          "page": 1,
+          "words": [
+            {"text": "परिच्छेद-१", "x0": 0.12, "y0": 0.05, "x2": 0.38, "y2": 0.08,
+             "line": 0, "block": 0, "char_offset": 0},
+            ...
+          ],
+          "image_dimensions": {"width": 612, "height": 792}
+        }
+
+    Coordinates are normalized 0-1 relative to the page image. The frontend
+    multiplies by its current rendered width/height to position each word.
+    """
+    tree_doc = await db.page_index_trees.find_one(
+        {"document_id": document_id},
+        {"image_dimensions": 1, "_id": 0},
+    )
+    if not tree_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    bbox_repo = OcrBboxRepository(db)
+    words = await bbox_repo.get_page_words(document_id, page_number)
+
+    return {
+        "page": page_number,
+        "words": words,
+        "image_dimensions": tree_doc.get("image_dimensions"),
+    }

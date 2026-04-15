@@ -146,8 +146,13 @@ async def upload_document(
     # Custom page-index tree: parse and validate synchronously.
     # Fail fast with 400 before we start the slow OCR background task.
     # ------------------------------------------------------------------
+    logger.info(
+        f"upload: page_index_file received? "
+        f"{page_index_file is not None} "
+        f"(filename={getattr(page_index_file, 'filename', None)!r})"
+    )
     custom_tree: Optional[dict] = None
-    if page_index_file is not None:
+    if page_index_file is not None and getattr(page_index_file, "filename", ""):
         # Strategy compatibility — only page_index supports custom trees.
         strategy_name = (getattr(form_data, "strategy", None) or "page_index").lower()
         if strategy_name == "vector":

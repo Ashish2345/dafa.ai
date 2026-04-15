@@ -36,7 +36,18 @@ Output format — return clean HTML only, no markdown, no code fences:
 - Use <strong> for key numbers, rates, and deadlines
 - Use <cite> for section citations with data-node, data-doc, data-page, data-section attributes
 - Use <p> for short introductory or closing sentences
-- Do NOT include <html>, <head>, <body> tags — just the inner content fragment"""
+- **Use <table> when the information is inherently tabular** — e.g. tax slabs with rate brackets, schedules of thresholds, deduction limits by category, comparisons across entity types, deadlines by form, or any 2+ column structured data. Prefer a table over bullet points when each item has the same attributes (e.g. "rate + range + applies to"). Use <thead><tr><th> for headers and <tbody><tr><td> for rows. Do NOT wrap the table in <p> or <li>. Place the citation for the table right after it (or inside the last cell) rather than in every cell.
+- Do NOT include <html>, <head>, <body> tags — just the inner content fragment
+
+Table example:
+<table>
+  <thead><tr><th>Income range (NPR)</th><th>Tax rate</th></tr></thead>
+  <tbody>
+    <tr><td>0 – 500,000</td><td><strong>1%</strong></td></tr>
+    <tr><td>500,001 – 700,000</td><td><strong>10%</strong></td></tr>
+  </tbody>
+</table>
+<p><cite data-node="26.1" data-doc="..." data-page="157" data-section="Resident natural person rates">Section 26.1, Page 157</cite></p>"""
 
 SYSTEM_PROMPT_NE = """तपाईं वित्त ऐनहरूको बारेमा प्रश्नको उत्तर दिने सटीक कानुनी सहायक हुनुहुन्छ।
 
@@ -49,7 +60,19 @@ SYSTEM_PROMPT_NE = """तपाईं वित्त ऐनहरूको ब�
 - अनुमान वा निष्कर्ष नगर्नुहोस्।
 - मूल नेपाली कानुनी शब्दावली (दफा, करयोग्य आय, कर छुट, पारिश्रमिक, आदि) जस्ताको तस्तै राख्नुहोस्।
 
-आउटपुट: सफा HTML मात्र — h3, ul/li, strong, cite ट्यागहरू प्रयोग गर्नुहोस्। markdown वा code fence नगर्नुहोस्।"""
+आउटपुट: सफा HTML मात्र — h3, ul/li, strong, cite ट्यागहरू प्रयोग गर्नुहोस्। markdown वा code fence नगर्नुहोस्।
+
+**तालिका प्रयोग गर्नुहोस्** — जब डाटा स्वाभाविक रूपमा तालिकामा मिल्छ (जस्तै कर स्ल्याब/दर, सीमा, कटौती, समूह अनुसार तुलना, समय-सीमा), तब bullet भन्दा <table> प्रयोग गर्नुहोस्। <thead><tr><th>...</th></tr></thead> header को लागि, <tbody><tr><td>...</td></tr></tbody> row को लागि। Citation लाई तालिका पछि <p> भित्र राख्नुहोस्, हरेक cell मा होइन।
+
+तालिका उदाहरण:
+<table>
+  <thead><tr><th>आय सीमा (रु.)</th><th>कर दर</th></tr></thead>
+  <tbody>
+    <tr><td>० – ५,००,०००</td><td><strong>१%</strong></td></tr>
+    <tr><td>५,००,००१ – ७,००,०००</td><td><strong>१०%</strong></td></tr>
+  </tbody>
+</table>
+<p><cite data-node="26.1" data-doc="..." data-page="157" data-section="बासिन्दा प्राकृतिक व्यक्ति दर">दफा 26.1, पृष्ठ 157</cite></p>"""
 
 USER_PROMPT = """Relevant sections from {act_name}:
 
