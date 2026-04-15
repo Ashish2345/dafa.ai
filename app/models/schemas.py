@@ -4,10 +4,12 @@ Pydantic schemas for API request and response models.
 These models define the contract between the API and clients.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import ParseStatus, ParsingType
 
@@ -151,4 +153,48 @@ class ParseResponse(BaseModel):
             }
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# Custom page-index tree upload (used by POST /documents/upload when the user
+# supplies their own tree instead of letting the LLM generate one).
+# ---------------------------------------------------------------------------
+
+
+class PageIndexNodeUpload(BaseModel):
+    """One node in a user-supplied page-index tree.
+
+    System-computed fields (``id``, ``start_char``, ``end_char``, ``page_bboxes``)
+    are intentionally *not* present on this model — they are ignored/overwritten
+    by the ingestion pipeline even if supplied.
+    """
+
+    nodeId: str = Field(..., min_length=1, description="Dotted id like '1.2.3'")
+    title: str = Field(..., min_length=1)
+    summary: str = Field(default="", description="Short summary; may be empty")
+    page_range: list[int] = Field(..., description="[start_page, end_page], both 1-indexed")
+    children: list["PageIndexNodeUpload"] = Field(default_factory=list)
+
+    @field_validator("page_range")
+    @classmethod
+    def _check_page_range(cls, v: list[int]) -> list[int]:
+        if len(v) != 2:
+            raise ValueError("page_range must be a 2-element list [start, end]")
+        start, end = v
+        if start < 1 or end < 1:
+            raise ValueError("page_range values must be >= 1 (pages are 1-indexed)")
+        if start > end:
+            raise ValueError(f"page_range start ({start}) cannot exceed end ({end})")
+        return v
+
+
+class PageIndexTreeUpload(BaseModel):
+    """Top-level shape of a user-supplied page-index tree JSON file."""
+
+    document_title: str = Field(..., min_length=1)
+    language: str = Field(default="en", description="e.g. 'en' or 'ne'")
+    nodes: list[PageIndexNodeUpload] = Field(..., min_length=1)
+
+
+PageIndexNodeUpload.model_rebuild()
 
