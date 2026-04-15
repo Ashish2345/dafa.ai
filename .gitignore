@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 data/
+docs/
+tests/
+.pytest_cache/
 
 .env
 data/

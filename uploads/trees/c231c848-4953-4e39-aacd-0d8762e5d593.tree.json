@@ -1,0 +1,5681 @@
+{
+  "document_title": "Economic Act Amendments",
+  "language": "en",
+  "nodes": [
+    {
+      "nodeId": "1",
+      "title": "Banking and Insurance Business Provisions",
+      "summary": "Amendments related to expense deductions and loss carry-forward for banking and general insurance businesses.",
+      "page_range": [
+        1,
+        1
+      ],
+      "children": [
+        {
+          "nodeId": "1.1",
+          "title": "Banking Business: Risk-Bearing Fund Deduction (Sub-section 1क)",
+          "summary": "Allows up to 5% of unrecovered loans in risk-bearing fund as deductible expense; amended by Economic Ordinance 2059.",
+          "page_range": [
+            1,
+            1
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 1,
+          "page_bboxes": [
+            {
+              "page": 1,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "1.2",
+          "title": "Banking Business: Loss Deduction (Sub-section 2)",
+          "summary": "Permits deducting banking business losses from past five income years' income; amended by Economic Act 2064.",
+          "page_range": [
+            1,
+            1
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 2,
+          "page_bboxes": [
+            {
+              "page": 1,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "1.3",
+          "title": "Banking Business: Loss Deduction Conditions (Sub-section 3)",
+          "summary": "Specifies conditions for deducting banking business losses, including limits and definition of 'banking business'.",
+          "page_range": [
+            1,
+            1
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 3,
+          "page_bboxes": [
+            {
+              "page": 1,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "1.4",
+          "title": "General Insurance Business: Loss Deduction (Sub-section 3)",
+          "summary": "Allows deducting general insurance business losses from past five income years' income; amended by Economic Act 2064.",
+          "page_range": [
+            1,
+            1
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 4,
+          "page_bboxes": [
+            {
+              "page": 1,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "1.5",
+          "title": "General Insurance Business: Loss Deduction Conditions (Sub-section 4)",
+          "summary": "Outlines conditions for deducting general insurance business losses; amended by Economic Act 2064.",
+          "page_range": [
+            1,
+            1
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 5,
+          "page_bboxes": [
+            {
+              "page": 1,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 0,
+      "page_bboxes": [
+        {
+          "page": 1,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.5651182673126,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "2",
+      "title": "Retirement Funds and Related Provisions",
+      "summary": "Amendments concerning retirement fund approval, exemptions, expenses, income, and related definitions.",
+      "page_range": [
+        2,
+        3
+      ],
+      "children": [
+        {
+          "nodeId": "2.1",
+          "title": "Retirement Fund Approval Process (Repealed)",
+          "summary": "Repeal of provisions requiring application and approval for establishing retirement funds; amended by Economic Act 2082.",
+          "page_range": [
+            2,
+            2
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 7,
+          "page_bboxes": [
+            {
+              "page": 2,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "2.2",
+          "title": "Exemptions from Retirement Fund Approval (Repealed)",
+          "summary": "Repeal of exemptions for Citizen Investment Trust, Social Security Fund, Employees Provident Fund, Pension Fund; amended by Economic Act 2082.",
+          "page_range": [
+            2,
+            2
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 8,
+          "page_bboxes": [
+            {
+              "page": 2,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "2.3",
+          "title": "Inclusion of Government Retirement Payments",
+          "summary": "Addition of 'payment from Nepal Government' to retirement payments; amended by Economic Ordinance 2059.",
+          "page_range": [
+            2,
+            2
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 9,
+          "page_bboxes": [
+            {
+              "page": 2,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "2.4",
+          "title": "Clarification of Contribution-Based Interest (Dafa 63, Sub-section 3) (Repealed)",
+          "summary": "Repeal of clarification for 'contribution-based interest' related to retirement contributions; amended by Economic Act 2081.",
+          "page_range": [
+            3,
+            3
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 10,
+          "page_bboxes": [
+            {
+              "page": 3,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "2.5",
+          "title": "Repeal of Dafa 66: Retirement Fund Expenses and Income",
+          "summary": "Repeal of section detailing expenses (contributions) and income (asset returns) related to interest in retirement funds; repealed by Economic Ordinance 2060.",
+          "page_range": [
+            3,
+            3
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 11,
+          "page_bboxes": [
+            {
+              "page": 3,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 6,
+      "page_bboxes": [
+        {
+          "page": 2,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 453.74445787988714,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 3,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "3",
+      "title": "Tax Administration and Definitions",
+      "summary": "Amendments to taxpayer duties, definitions of tax terms, and names of tax offices.",
+      "page_range": [
+        3,
+        4
+      ],
+      "children": [
+        {
+          "nodeId": "3.1",
+          "title": "Definition of 'Liability in Nepal'",
+          "summary": "Amendment to the definition of 'liability to be borne in Nepal'; amended by Economic Act 2082.",
+          "page_range": [
+            3,
+            3
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 13,
+          "page_bboxes": [
+            {
+              "page": 3,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "3.2",
+          "title": "Definition of 'Average Tax Rate of Nepal'",
+          "summary": "Amendment to the definition of 'average tax rate of Nepal' for foreign tax credit calculation; amended by Economic Ordinance 2060.",
+          "page_range": [
+            3,
+            3
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 14,
+          "page_bboxes": [
+            {
+              "page": 3,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "3.3",
+          "title": "Changes in Tax Office Names",
+          "summary": "Amendments to include 'Large Taxpayer Office', 'Taxpayer Service Office', 'Medium Level Taxpayer Office'; amended by Economic Act 2067.",
+          "page_range": [
+            3,
+            3
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 15,
+          "page_bboxes": [
+            {
+              "page": 3,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "3.4",
+          "title": "Taxpayer Rights and Duties (Sub-section 1)",
+          "summary": "Amendment stating taxpayers cannot enjoy rights without fulfilling duties; amended by Economic Ordinance 2059.",
+          "page_range": [
+            4,
+            4
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 16,
+          "page_bboxes": [
+            {
+              "page": 4,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "3.5",
+          "title": "Permanent Account Number (PAN) Issuance (Sub-section 1)",
+          "summary": "Amendment regarding PAN issuance by Department and approved entities, with import/export restrictions; amended by Economic Act 2063.",
+          "page_range": [
+            4,
+            4
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 17,
+          "page_bboxes": [
+            {
+              "page": 4,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 12,
+      "page_bboxes": [
+        {
+          "page": 3,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 4,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "4",
+      "title": "Record Keeping and Electronic Records",
+      "summary": "Provision for the Department to approve electronic record-keeping for taxpayers.",
+      "page_range": [
+        5,
+        5
+      ],
+      "children": [
+        {
+          "nodeId": "4.1",
+          "title": "Electronic Record Keeping Approval (Sub-section 4)",
+          "summary": "Department can approve taxpayers to keep required documents electronically; added by Economic Act 2064.",
+          "page_range": [
+            5,
+            5
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 19,
+          "page_bboxes": [
+            {
+              "page": 5,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 18,
+      "page_bboxes": [
+        {
+          "page": 5,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "5",
+      "title": "Tax Deduction at Source (TDS)",
+      "summary": "Comprehensive amendments to TDS rates, scope, and exemptions for various income types and payments.",
+      "page_range": [
+        5,
+        11
+      ],
+      "children": [
+        {
+          "nodeId": "5.1",
+          "title": "TDS on Resident Payments (Sub-section 1)",
+          "summary": "Initial 15% TDS on Nepal-sourced interest, natural resources, rent, royalty, service fees, retirement payments by residents.",
+          "page_range": [
+            5,
+            5
+          ],
+          "children": [
+            {
+              "nodeId": "5.1.1",
+              "title": "Original 15% Rate and Retirement Fund Proviso",
+              "summary": "15% TDS on various resident payments; 6% on approved retirement fund/gratuity profit; amended by Economic Act 2075.",
+              "page_range": [
+                5,
+                5
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 22,
+              "page_bboxes": [
+                {
+                  "page": 5,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "6% TDS on government/approved retirement fund profit; 5% on non-resident commission; 10% on aircraft lease.",
+              "page_range": [
+                5,
+                5
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 23,
+              "page_bboxes": [
+                {
+                  "page": 5,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.3",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "1.5% TDS on VAT-registered resident service provider fees.",
+              "page_range": [
+                6,
+                6
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 24,
+              "page_bboxes": [
+                {
+                  "page": 6,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.4",
+              "title": "Economic Act 2065 Revisions",
+              "summary": "10% TDS on Nepal-sourced rent paid by residents.",
+              "page_range": [
+                6,
+                6
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 25,
+              "page_bboxes": [
+                {
+                  "page": 6,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.5",
+              "title": "Economic Act 2066 Revisions",
+              "summary": "10% TDS on profits/gains from commodity future market transactions.",
+              "page_range": [
+                6,
+                6
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 26,
+              "page_bboxes": [
+                {
+                  "page": 6,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.6",
+              "title": "Economic Act 2071 Revisions",
+              "summary": "5% on government/approved retirement fund profit; 5% on non-resident commission; 10% on aircraft lease; 1.5% on VAT-registered service fees; 10% on Nepal-sourced rent; 5% on mutual fund distributions.",
+              "page_range": [
+                6,
+                6
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 27,
+              "page_bboxes": [
+                {
+                  "page": 6,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.7",
+              "title": "Economic Act 2072 Revisions",
+              "summary": "1.5% TDS on vehicle rental payments to VAT-registered businesses.",
+              "page_range": [
+                6,
+                6
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 28,
+              "page_bboxes": [
+                {
+                  "page": 6,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.8",
+              "title": "Economic Act 2075 Revisions",
+              "summary": "2.5% TDS on transport service/vehicle rental payments.",
+              "page_range": [
+                7,
+                7
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 29,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.9",
+              "title": "Economic Act 2077 Revisions",
+              "summary": "2.5% TDS on transport service/vehicle rental; 1.5% for VAT-registered providers.",
+              "page_range": [
+                7,
+                7
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 30,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.1.10",
+              "title": "Economic Ordinance 2078 Repeal",
+              "summary": "Repeal of 1.5% TDS for VAT-registered transport services, reverting to 2.5%.",
+              "page_range": [
+                7,
+                7
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 31,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 21,
+          "page_bboxes": [
+            {
+              "page": 5,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.2",
+          "title": "TDS on Dividends, Insurance Gains, Unapproved Retirement Funds (Sub-section 2)",
+          "summary": "Amendments to TDS rates for resident individuals on Nepal-sourced dividends, investment insurance gains, and unapproved retirement fund gains.",
+          "page_range": [
+            7,
+            8
+          ],
+          "children": [
+            {
+              "nodeId": "5.2.1",
+              "title": "Original 10% Rate",
+              "summary": "10% TDS on dividends, investment insurance gains, unapproved retirement fund gains; amended by Economic Act 2066.",
+              "page_range": [
+                7,
+                7
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 33,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.2.2",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "5% on dividends, 5% on investment insurance gains, 10% on unapproved retirement fund gains.",
+              "page_range": [
+                7,
+                7
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 34,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.2.3",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "Dividends: 5% (resident), 10% (non-resident); Investment insurance/personal accident compensation: 5%; Unapproved retirement fund gain: 5%.",
+              "page_range": [
+                7,
+                8
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 35,
+              "page_bboxes": [
+                {
+                  "page": 7,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 8,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 32,
+          "page_bboxes": [
+            {
+              "page": 7,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 8,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.3",
+          "title": "TDS on Interest from Banks/FIs (Sub-section 3)",
+          "summary": "Amendments to 6% TDS on interest paid by resident banks/FIs to natural persons, expanding scope.",
+          "page_range": [
+            8,
+            8
+          ],
+          "children": [
+            {
+              "nodeId": "5.3.1",
+              "title": "Original 6% Rate for Banks/FIs",
+              "summary": "6% TDS on interest from resident banks/FIs to natural persons for Nepal-sourced, non-business income.",
+              "page_range": [
+                8,
+                8
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 37,
+              "page_bboxes": [
+                {
+                  "page": 8,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.3.2",
+              "title": "Economic Ordinance 2060 Scope Expansion",
+              "summary": "Expanded 6% TDS to include interest from other debt-issuing entities and registered companies on deposits, debentures, government bonds.",
+              "page_range": [
+                8,
+                8
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 38,
+              "page_bboxes": [
+                {
+                  "page": 8,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 36,
+          "page_bboxes": [
+            {
+              "page": 8,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.4",
+          "title": "TDS on Service Fees and Professional Payments",
+          "summary": "Amendments to TDS on service fees to companies and payments for professional/academic work.",
+          "page_range": [
+            8,
+            9
+          ],
+          "children": [
+            {
+              "nodeId": "5.4.1",
+              "title": "Economic Ordinance 2061 Additions",
+              "summary": "Added TDS on service fees to companies and payments for question paper preparation/answer sheet checking.",
+              "page_range": [
+                8,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 40,
+              "page_bboxes": [
+                {
+                  "page": 8,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.4.2",
+              "title": "Economic Ordinance 2062 Revisions",
+              "summary": "Revised TDS to apply to service fees to *resident* companies and payments for articles in periodicals.",
+              "page_range": [
+                9,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 41,
+              "page_bboxes": [
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 39,
+          "page_bboxes": [
+            {
+              "page": 8,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 9,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.4639258363563,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.5",
+          "title": "TDS Exemptions (Repealed/Revised)",
+          "summary": "Changes to exemptions from TDS for various payments, including hydropower interest, government payments, and mutual funds.",
+          "page_range": [
+            9,
+            9
+          ],
+          "children": [
+            {
+              "nodeId": "5.5.1",
+              "title": "Hydropower Interest Exemption (Repealed)",
+              "summary": "Repeal of exemption for interest on foreign currency loans by large hydropower projects; repealed by Economic Act 2080.",
+              "page_range": [
+                9,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 43,
+              "page_bboxes": [
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.5.2",
+              "title": "Government Payments to Foreign Entities",
+              "summary": "Exemption for interest/fees paid by Nepal Government to foreign governments/international organizations under agreement; added by Economic Act 2064.",
+              "page_range": [
+                9,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 44,
+              "page_bboxes": [
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.5.3",
+              "title": "Rural Financial Institutions/Cooperatives Interest Exemption (Repealed)",
+              "summary": "Exemption for annual interest up to NPR 10,000 from deposits in rural microfinance, rural development banks, postal savings banks, and cooperatives; repealed by Economic Act 2071.",
+              "page_range": [
+                9,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 45,
+              "page_bboxes": [
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.5.4",
+              "title": "Mutual Fund Payments Exemption (Repealed)",
+              "summary": "Exemption for dividends and interest paid to mutual funds; repealed by Economic Ordinance 2078.",
+              "page_range": [
+                9,
+                9
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 46,
+              "page_bboxes": [
+                {
+                  "page": 9,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.4639258363563,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 42,
+          "page_bboxes": [
+            {
+              "page": 9,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.4639258363563,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.6",
+          "title": "TDS on General Insurance and Contracts (Sub-section 1)",
+          "summary": "Amendments to TDS on general insurance premiums or contract payments exceeding NPR 50,000.",
+          "page_range": [
+            10,
+            10
+          ],
+          "children": [
+            {
+              "nodeId": "5.6.1",
+              "title": "Original 1.5% Rate",
+              "summary": "1.5% TDS on general insurance premium or contract payments over NPR 50,000; amended by Economic Act 2065.",
+              "page_range": [
+                10,
+                10
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 48,
+              "page_bboxes": [
+                {
+                  "page": 10,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 47,
+          "page_bboxes": [
+            {
+              "page": 10,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.7",
+          "title": "TDS on Contracts with Non-Residents (Sub-section 3)",
+          "summary": "Amendments to TDS rates for payments by residents to non-residents under contracts.",
+          "page_range": [
+            10,
+            10
+          ],
+          "children": [
+            {
+              "nodeId": "5.7.1",
+              "title": "Economic Act 2065 Revisions",
+              "summary": "10% for service contracts, 5% for other contracts, 1.5% for non-resident insurance premium.",
+              "page_range": [
+                10,
+                10
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 50,
+              "page_bboxes": [
+                {
+                  "page": 10,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.7.2",
+              "title": "Economic Act 2067 Revisions",
+              "summary": "5% for aircraft lease and other contracts, 1.5% for non-resident insurance premium.",
+              "page_range": [
+                10,
+                10
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 51,
+              "page_bboxes": [
+                {
+                  "page": 10,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 49,
+          "page_bboxes": [
+            {
+              "page": 10,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.8",
+          "title": "TDS Exemption for Security Forces Purchases (Repealed)",
+          "summary": "Repeal of exemption for payments by Nepal Army, Police, Armed Police Force for arms, ammunition, communication equipment; repealed by Economic Act 2080.",
+          "page_range": [
+            10,
+            10
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 52,
+          "page_bboxes": [
+            {
+              "page": 10,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.9",
+          "title": "TDS on Contract Payments: Exemptions (Sub-section 4)",
+          "summary": "Amendments to payments exempt from TDS on contracts, particularly for natural persons.",
+          "page_range": [
+            10,
+            11
+          ],
+          "children": [
+            {
+              "nodeId": "5.9.1",
+              "title": "Original Exemptions",
+              "summary": "Exempted payments by natural persons not related to business, or tax-exempt payments; amended by Economic Act 2075.",
+              "page_range": [
+                10,
+                11
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 54,
+              "page_bboxes": [
+                {
+                  "page": 10,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 11,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "5.9.2",
+              "title": "Economic Act 2070 Revisions",
+              "summary": "Exempted payments to non-business natural persons, except Nepal-sourced rent for land/house/equipment.",
+              "page_range": [
+                11,
+                11
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 55,
+              "page_bboxes": [
+                {
+                  "page": 11,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 53,
+          "page_bboxes": [
+            {
+              "page": 10,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 11,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.10",
+          "title": "TDS on Capital Gains from Resident Entities (Dafa 89क) (Repealed)",
+          "summary": "Repeal of TDS on gains from disposal of interest in resident entities, with rates of 10% for resident natural persons and 15% for others; repealed by Economic Act 2067.",
+          "page_range": [
+            11,
+            11
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 56,
+          "page_bboxes": [
+            {
+              "page": 11,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "5.11",
+          "title": "TDS on Capital Gains from House/Land (Dafa 89ख) (Repealed)",
+          "summary": "Repeal of TDS on capital gains from disposal of house/land by natural persons, with rates of 5% (>5 years ownership) and 10% (<5 years ownership); repealed by Economic Act 2067.",
+          "page_range": [
+            11,
+            11
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 57,
+          "page_bboxes": [
+            {
+              "page": 11,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 20,
+      "page_bboxes": [
+        {
+          "page": 5,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 6,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.5651182673126,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "6",
+      "title": "Tax Payment and Advance Tax",
+      "summary": "Amendments to TDS statement filing, installment tax, advance tax collection, and related liabilities.",
+      "page_range": [
+        12,
+        18
+      ],
+      "children": [
+        {
+          "nodeId": "6.1",
+          "title": "TDS Statement Filing (Sub-section 1)",
+          "summary": "Amendments to requirements and deadlines for filing TDS statements by tax deductors.",
+          "page_range": [
+            12,
+            12
+          ],
+          "children": [
+            {
+              "nodeId": "6.1.1",
+              "title": "Original Filing Requirements",
+              "summary": "Detailed requirements for TDS statements, including payee info and tax deducted, within 15 days of month-end.",
+              "page_range": [
+                12,
+                12
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 60,
+              "page_bboxes": [
+                {
+                  "page": 12,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.1.2",
+              "title": "Economic Act 2063 Revisions",
+              "summary": "Simplified filing requirement: within 15 days of month-end in prescribed format.",
+              "page_range": [
+                12,
+                12
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 61,
+              "page_bboxes": [
+                {
+                  "page": 12,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 59,
+          "page_bboxes": [
+            {
+              "page": 12,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.2",
+          "title": "Tax Payment on Non-Business House Rent (Repealed)",
+          "summary": "Repeal of provision for tax on non-business house rent income to be paid by Ashar end; repealed by Economic Act 2076.",
+          "page_range": [
+            12,
+            12
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 62,
+          "page_bboxes": [
+            {
+              "page": 12,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.3",
+          "title": "TDS: Joint and Several Liability (Sub-section 5)",
+          "summary": "Establishes joint and several liability for tax deductor and payee if tax is not deducted or deposited; amended by Economic Ordinance 2060.",
+          "page_range": [
+            12,
+            12
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 63,
+          "page_bboxes": [
+            {
+              "page": 12,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.4",
+          "title": "TDS Exemptions: Investment Gains and Professional Fees",
+          "summary": "Amendments to exemptions from TDS for investment gains, personal accident compensation, bank interest, and professional fees.",
+          "page_range": [
+            13,
+            14
+          ],
+          "children": [
+            {
+              "nodeId": "6.4.1",
+              "title": "Investment Gains and Accident Compensation",
+              "summary": "Evolution of definition for 'gain paid by resident person for investment' to include personal accident compensation and investment insurance.",
+              "page_range": [
+                13,
+                13
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 65,
+              "page_bboxes": [
+                {
+                  "page": 13,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.4.2",
+              "title": "Bank/FI Interest Exemption",
+              "summary": "Exemption for interest paid by bank/financial institution as per Dafa 88(3); amended by Economic Ordinance 2059.",
+              "page_range": [
+                13,
+                13
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 66,
+              "page_bboxes": [
+                {
+                  "page": 13,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.4.3",
+              "title": "Professional/Meeting Fees Exemption",
+              "summary": "Exemption for meeting allowance, occasional teaching, and previously, exam-related payments; amended by Economic Ordinance 2060.",
+              "page_range": [
+                13,
+                13
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 67,
+              "page_bboxes": [
+                {
+                  "page": 13,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.4.4",
+              "title": "Transport/Vehicle Rental Exemption (Natural Persons)",
+              "summary": "Exemption for payments for vehicle/transport rental or service by natural persons (excluding sole proprietorships); amended by Economic Act 2082.",
+              "page_range": [
+                14,
+                14
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 68,
+              "page_bboxes": [
+                {
+                  "page": 14,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 64,
+          "page_bboxes": [
+            {
+              "page": 13,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 14,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.5",
+          "title": "Tax Payment in Installments (Dafa 94)",
+          "summary": "Amendments to the schedule and components of tax payment in installments.",
+          "page_range": [
+            14,
+            15
+          ],
+          "children": [
+            {
+              "nodeId": "6.5.1",
+              "title": "Original Installment Schedule",
+              "summary": "Three installments: 40% by Poush end, 70% by Chait end, 100% by Ashadh end; amended by Economic Ordinance 2060.",
+              "page_range": [
+                14,
+                14
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 70,
+              "page_bboxes": [
+                {
+                  "page": 14,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.5.2",
+              "title": "Components of 'Tax Already Paid'",
+              "summary": "Includes TDS from payments under Section 17, deemed TDS under Dafa 90(3), and tax credit for approved medical expenses under Dafa 51.",
+              "page_range": [
+                14,
+                15
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 71,
+              "page_bboxes": [
+                {
+                  "page": 14,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 15,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 69,
+          "page_bboxes": [
+            {
+              "page": 14,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 15,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.6",
+          "title": "Advance Tax Collection (Dafa 95क)",
+          "summary": "Amendments to advance tax collection, particularly for capital gains on land/buildings.",
+          "page_range": [
+            15,
+            16
+          ],
+          "children": [
+            {
+              "nodeId": "6.6.1",
+              "title": "Deposit Requirements (Sub-section 6)",
+              "summary": "Deposit of advance tax collected or deemed collected; amended by Economic Act 2076.",
+              "page_range": [
+                15,
+                15
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 73,
+              "page_bboxes": [
+                {
+                  "page": 15,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.2",
+              "title": "Advance Tax on Land/Building Gains (Sub-section 6)",
+              "summary": "10% advance tax collected by Land Revenue Office on gains from disposal of land/building; amended by Economic Act 2073.",
+              "page_range": [
+                15,
+                15
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 74,
+              "page_bboxes": [
+                {
+                  "page": 15,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.3",
+              "title": "Advance Tax on Capital Gains (Natural Persons) Rate Change",
+              "summary": "Amendment to the 5% rate for resident natural persons' capital gains; amended by Economic Ordinance 2078.",
+              "page_range": [
+                15,
+                15
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 75,
+              "page_bboxes": [
+                {
+                  "page": 15,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.4",
+              "title": "Advance Tax on Capital Gains (Others) Rate Change",
+              "summary": "Amendment to the 10% rate for others' capital gains; amended by Economic Act 2075.",
+              "page_range": [
+                16,
+                16
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 76,
+              "page_bboxes": [
+                {
+                  "page": 16,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.5",
+              "title": "Advance Tax on Land/Private Building Gains (Sub-section 3)",
+              "summary": "Original rates: 2.5% if ownership > 5 years, 5% if ownership < 5 years; amended by Economic Act 2073.",
+              "page_range": [
+                16,
+                16
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 77,
+              "page_bboxes": [
+                {
+                  "page": 16,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.6",
+              "title": "Deemed Collection of Advance Tax (Sub-section 4) (Repealed)",
+              "summary": "Repeal of provision for deemed collection of advance tax even if not actually collected; repealed by Economic Ordinance 2078.",
+              "page_range": [
+                16,
+                16
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 78,
+              "page_bboxes": [
+                {
+                  "page": 16,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.7",
+              "title": "Advance Tax Exemption for Mutual Fund Investments (Sub-section 4)",
+              "summary": "No advance tax on disposal of interest invested by mutual funds; amended by Economic Act 2073.",
+              "page_range": [
+                16,
+                16
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 79,
+              "page_bboxes": [
+                {
+                  "page": 16,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.6.8",
+              "title": "Advance Tax on Land/Building Gains (Sub-section 6) Rate Change",
+              "summary": "Amendment to the 10% rate for land/building gains by Land Revenue Office; amended by Economic Act 2076.",
+              "page_range": [
+                16,
+                16
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 80,
+              "page_bboxes": [
+                {
+                  "page": 16,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 72,
+          "page_bboxes": [
+            {
+              "page": 15,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 16,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.7",
+          "title": "Advance Tax on Software/Electronic Services Export (Sub-section 6ख)",
+          "summary": "1% advance tax on foreign currency payments received for software/electronic services provided outside Nepal, collected by banks/FIs/money transfer agents; added by Economic Ordinance 2078.",
+          "page_range": [
+            17,
+            17
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 81,
+          "page_bboxes": [
+            {
+              "page": 17,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.8",
+          "title": "Advance Tax on Imports at Customs Point (Sub-section 7) (Repealed)",
+          "summary": "Repeal of advance income tax collection at customs point for commercial imports, with detailed rates for various goods categories; repealed by Economic Act 2082.",
+          "page_range": [
+            17,
+            18
+          ],
+          "children": [
+            {
+              "nodeId": "6.8.1",
+              "title": "Economic Act 2081 Rates (Repealed)",
+              "summary": "10% for live animals, meat, fish, flowers, edible plants, fruits; 2.5% for dairy, eggs, honey, grains, flour, herbs, sugarcane, plant products; 1.5% for VAT-taxable imports.",
+              "page_range": [
+                17,
+                17
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 83,
+              "page_bboxes": [
+                {
+                  "page": 17,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "6.8.2",
+              "title": "Economic Act 2075 Rates (Repealed)",
+              "summary": "5% for specific live animals, fish, fresh flowers, vegetables, fruits; 2.5% for meat, dairy, eggs, honey, grains, flour, herbs, sugarcane, plant products; 1.5% for VAT-taxable imports.",
+              "page_range": [
+                17,
+                18
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 84,
+              "page_bboxes": [
+                {
+                  "page": 17,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 18,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 82,
+          "page_bboxes": [
+            {
+              "page": 17,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 18,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.9",
+          "title": "Advance Tax: Deemed Collection (Sub-section 8)",
+          "summary": "Amendment to the provision for deemed collection of advance tax even if not actually collected; amended by Economic Act 2082.",
+          "page_range": [
+            18,
+            18
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 85,
+          "page_bboxes": [
+            {
+              "page": 18,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.10",
+          "title": "Advance Tax: Credit Against Annual Liability (Sub-section 10)",
+          "summary": "Original provision allowing advance tax filed to be reduced from annual tax liability; amended by Economic Act 2067.",
+          "page_range": [
+            18,
+            18
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 86,
+          "page_bboxes": [
+            {
+              "page": 18,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.11",
+          "title": "Advance Tax: Joint and Several Liability (Sub-section 10)",
+          "summary": "Establishes joint and several liability for advance tax deductor and payee if tax is not collected or deposited; amended by Economic Act 2073.",
+          "page_range": [
+            18,
+            18
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 87,
+          "page_bboxes": [
+            {
+              "page": 18,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "6.12",
+          "title": "Advance Tax: Deposit Requirements (Sub-section 10)",
+          "summary": "Requires deposit of advance tax collected or deemed collected, referencing other sub-sections; amended by Economic Act 2075.",
+          "page_range": [
+            18,
+            18
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 88,
+          "page_bboxes": [
+            {
+              "page": 18,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 58,
+      "page_bboxes": [
+        {
+          "page": 12,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.3251638643488,
+            "x2": 453.74445787988714,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 13,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "7",
+      "title": "Income Statement and Tax Credit",
+      "summary": "Amendments to tax credit provisions, income statement filing requirements, and exemptions.",
+      "page_range": [
+        19,
+        20
+      ],
+      "children": [
+        {
+          "nodeId": "7.1",
+          "title": "Tax Credit Provisions (Repealed)",
+          "summary": "Repeal of provisions for tax credit for TDS, installment payments, or assessed tax; repealed by Economic Ordinance 2060.",
+          "page_range": [
+            19,
+            19
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 90,
+          "page_bboxes": [
+            {
+              "page": 19,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "7.2",
+          "title": "Income Statement Filing Requirements (Repealed)",
+          "summary": "Repeal of requirements for TDS certificate and proof of election under Dafa 4(4) when filing income statement; repealed by Economic Ordinance 2060/2078.",
+          "page_range": [
+            19,
+            19
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 91,
+          "page_bboxes": [
+            {
+              "page": 19,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "7.3",
+          "title": "Income Statement Filing Exemptions (Dafa 97)",
+          "summary": "Amendments to categories of persons exempt from filing income statements, and conditions for mandatory filing.",
+          "page_range": [
+            19,
+            20
+          ],
+          "children": [
+            {
+              "nodeId": "7.3.1",
+              "title": "Original Exemptions",
+              "summary": "Exemptions for non-taxable persons, Dafa 3(ग) persons, and Dafa 4(3) resident natural persons; amended by Economic Act 2072.",
+              "page_range": [
+                19,
+                19
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 93,
+              "page_bboxes": [
+                {
+                  "page": 19,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "7.3.2",
+              "title": "Economic Act 2072 Revisions",
+              "summary": "Revised exemptions, including vehicle owners under Schedule-1, Dafa 1(13); mandatory filing for natural persons with income > NPR 4 million.",
+              "page_range": [
+                20,
+                20
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 94,
+              "page_bboxes": [
+                {
+                  "page": 20,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "7.3.3",
+              "title": "Income Inclusion/Exclusion for Filing Threshold",
+              "summary": "Specifies income types to be included (business exemption facilities) and excluded (meeting allowance, interest) for the NPR 4 million threshold.",
+              "page_range": [
+                20,
+                20
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 95,
+              "page_bboxes": [
+                {
+                  "page": 20,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "7.3.4",
+              "title": "Deductions from Calculated Income",
+              "summary": "Allows deductions for Dafa 3(ग) income and Dafa 11 tax-exempt income, excluding meeting allowance and interest income.",
+              "page_range": [
+                20,
+                20
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 96,
+              "page_bboxes": [
+                {
+                  "page": 20,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "7.3.5",
+              "title": "Income Statement Format",
+              "summary": "Format of income statement for mandatory filers to be prescribed by Inland Revenue Department.",
+              "page_range": [
+                20,
+                20
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 97,
+              "page_bboxes": [
+                {
+                  "page": 20,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "7.3.6",
+              "title": "Economic Act 2075 Revisions",
+              "summary": "Amended 'vehicle owner' to 'vehicle owner excluding sole proprietorship' and added clause (ङ).",
+              "page_range": [
+                20,
+                20
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 98,
+              "page_bboxes": [
+                {
+                  "page": 20,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 92,
+          "page_bboxes": [
+            {
+              "page": 19,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 20,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 89,
+      "page_bboxes": [
+        {
+          "page": 19,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.3251638643488,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 20,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.3251638643488,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "8",
+      "title": "Tax Appeals and Penalties",
+      "summary": "Amendments to outstanding tax collection, advance tax carry-forward, appeal deposit requirements, deemed rejection, and various penalties.",
+      "page_range": [
+        21,
+        26
+      ],
+      "children": [
+        {
+          "nodeId": "8.1",
+          "title": "Outstanding Tax Collection in Installments (Dafa 110क)",
+          "summary": "Tax officer can approve installment payment for outstanding tax if requested before legal action; amended by Economic Act 2063.",
+          "page_range": [
+            21,
+            21
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 100,
+          "page_bboxes": [
+            {
+              "page": 21,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.2",
+          "title": "Advance Tax Carry Forward/Refund (Repealed)",
+          "summary": "Repeal of provision that advance tax collected under Dafa 95क(7) cannot be carried forward or refunded; repealed by Economic Act 2082.",
+          "page_range": [
+            21,
+            21
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 101,
+          "page_bboxes": [
+            {
+              "page": 21,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.3",
+          "title": "Appeals: Tax Deposit Requirements (Sub-section 6)",
+          "summary": "Evolution of tax deposit requirements for appeals against decisions.",
+          "page_range": [
+            21,
+            21
+          ],
+          "children": [
+            {
+              "nodeId": "8.3.1",
+              "title": "Original 50% Deposit",
+              "summary": "Requires deposit of 50% of tax payable for a provision to apply; amended by Economic Act 2073.",
+              "page_range": [
+                21,
+                21
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 103,
+              "page_bboxes": [
+                {
+                  "page": 21,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.3.2",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Requires deposit of 50% of remaining tax when appealing a Dafa 114(1)(ङ) decision.",
+              "page_range": [
+                21,
+                21
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 104,
+              "page_bboxes": [
+                {
+                  "page": 21,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.3.3",
+              "title": "Economic Act 2063/2064 Revisions",
+              "summary": "Deposit 1/3 of tax, then full undisputed tax plus 1/3 of disputed tax.",
+              "page_range": [
+                21,
+                21
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 105,
+              "page_bboxes": [
+                {
+                  "page": 21,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 102,
+          "page_bboxes": [
+            {
+              "page": 21,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.4",
+          "title": "Appeals: Deemed Rejection (Sub-section 8)",
+          "summary": "Amendments to timelines for deemed rejection of appeal if Department fails to notify decision.",
+          "page_range": [
+            22,
+            22
+          ],
+          "children": [
+            {
+              "nodeId": "8.4.1",
+              "title": "Original 90-Day Period",
+              "summary": "Appeal deemed rejected if Department doesn't notify decision within 90 days; amended by Economic Act 2076.",
+              "page_range": [
+                22,
+                22
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 107,
+              "page_bboxes": [
+                {
+                  "page": 22,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.4.2",
+              "title": "Economic Ordinance 2061 Revisions",
+              "summary": "Reduced period to 60 days for deemed rejection of appeal.",
+              "page_range": [
+                22,
+                22
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 108,
+              "page_bboxes": [
+                {
+                  "page": 22,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 106,
+          "page_bboxes": [
+            {
+              "page": 22,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.5",
+          "title": "Appeals: Notification of Deemed Rejection (Sub-section 9)",
+          "summary": "Applicant must inform Department of deemed rejection, which then deems rejection and notification on that date; amended by Economic Act 2076.",
+          "page_range": [
+            22,
+            22
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 109,
+          "page_bboxes": [
+            {
+              "page": 22,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.6",
+          "title": "Penalties for Non-Filing of Income Statement (Sub-section 1)",
+          "summary": "Evolution of penalties for not filing income statements under Dafa 95(1) or 96(1).",
+          "page_range": [
+            22,
+            23
+          ],
+          "children": [
+            {
+              "nodeId": "8.6.1",
+              "title": "Original Penalty",
+              "summary": "1.5% p.a. of assessable income or NPR 1,000/month, whichever is higher; amended by Economic Act 2075.",
+              "page_range": [
+                22,
+                22
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 111,
+              "page_bboxes": [
+                {
+                  "page": 22,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.6.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "0.1% p.a. of assessable income or NPR 1,000/year, whichever is higher.",
+              "page_range": [
+                22,
+                22
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 112,
+              "page_bboxes": [
+                {
+                  "page": 22,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.6.3",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "NPR 2,000 for Dafa 95(1); for Dafa 96(1): NPR 100/month (Dafa 4(4) persons) or 0.1% p.a. of assessable income/NPR 100/month (others).",
+              "page_range": [
+                22,
+                23
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 113,
+              "page_bboxes": [
+                {
+                  "page": 22,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 23,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.6.4",
+              "title": "Economic Act 2067 Revisions",
+              "summary": "Added 1.5% p.a. penalty for not filing Dafa 95क(5) advance tax collection statement.",
+              "page_range": [
+                23,
+                23
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 114,
+              "page_bboxes": [
+                {
+                  "page": 23,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.6.5",
+              "title": "Economic Act 2071 Revisions",
+              "summary": "Added 0.1% p.a. penalty for tax-exempt entities not filing financial statements on time.",
+              "page_range": [
+                23,
+                24
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 115,
+              "page_bboxes": [
+                {
+                  "page": 23,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 24,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 110,
+          "page_bboxes": [
+            {
+              "page": 22,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 23,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.7",
+          "title": "Penalties for Non-Keeping Records (Sub-section 2)",
+          "summary": "Penalty for not keeping records as per Dafa 81: 1.5% p.a. of assessable income or NPR 1,000/month, whichever is higher; amended by Economic Act 2066.",
+          "page_range": [
+            24,
+            24
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 116,
+          "page_bboxes": [
+            {
+              "page": 24,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.8",
+          "title": "Penalties for Non-Filing TDS Statement (Sub-section 3)",
+          "summary": "Penalty for not filing TDS statement under Dafa 90(1): 1.5% p.a. of TDS amount for each month/part thereof; amended by Economic Act 2075.",
+          "page_range": [
+            24,
+            24
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 117,
+          "page_bboxes": [
+            {
+              "page": 24,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.9",
+          "title": "Interest for Underpayment of Installment Tax (Dafa 118)",
+          "summary": "Amendments to calculation and rates of interest for underpayment of estimated tax in installments.",
+          "page_range": [
+            24,
+            25
+          ],
+          "children": [
+            {
+              "nodeId": "8.9.1",
+              "title": "Original Interest Calculation",
+              "summary": "Interest on shortfall if installment tax paid is less than 90% of tax payable; amended by Economic Ordinance 2062.",
+              "page_range": [
+                24,
+                25
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 119,
+              "page_bboxes": [
+                {
+                  "page": 24,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 25,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.9.2",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Interest on excess of 80% of estimated/actual tax over tax paid for each installment, at normal interest rate.",
+              "page_range": [
+                25,
+                25
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 120,
+              "page_bboxes": [
+                {
+                  "page": 25,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.9.3",
+              "title": "Economic Act 2067 Revisions",
+              "summary": "Changed estimated tax calculation from 80% to 90%; amended by Economic Act 2067.",
+              "page_range": [
+                25,
+                25
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 121,
+              "page_bboxes": [
+                {
+                  "page": 25,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 118,
+          "page_bboxes": [
+            {
+              "page": 24,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 25,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.10",
+          "title": "Interest: Deductor's Non-Recovery from Payee (Sub-section 3)",
+          "summary": "Tax deductor cannot recover interest from payee if non-compliance with Dafa 90(4) caused the interest; amended by Economic Act 2067.",
+          "page_range": [
+            25,
+            25
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 122,
+          "page_bboxes": [
+            {
+              "page": 25,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.11",
+          "title": "General Penalties for Non-Compliance (Dafa 119क)",
+          "summary": "General penalty for non-compliance with Act/Rules: NPR 5,000 to NPR 25,000; amended by Economic Act 2081.",
+          "page_range": [
+            26,
+            26
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 123,
+          "page_bboxes": [
+            {
+              "page": 26,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "8.12",
+          "title": "Rewards and Informant Expenses (Dafa 136क)",
+          "summary": "Provisions for rewards and informant expenses for providing information on tax evasion, including confidentiality.",
+          "page_range": [
+            26,
+            27
+          ],
+          "children": [
+            {
+              "nodeId": "8.12.1",
+              "title": "Original Penalty Exemption (Repealed)",
+              "summary": "Exemption from penalty if tax burden changes due to interpretation but collection amount doesn't; repealed by Economic Act 2064.",
+              "page_range": [
+                26,
+                26
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 125,
+              "page_bboxes": [
+                {
+                  "page": 26,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.12.2",
+              "title": "Economic Act 2064: Reward for Tax Evasion Info",
+              "summary": "20% reward of recovered tax based on evidence for providing information on tax evasion.",
+              "page_range": [
+                26,
+                26
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 126,
+              "page_bboxes": [
+                {
+                  "page": 26,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "8.12.3",
+              "title": "Economic Act 2071: Reward and Informant Expenses",
+              "summary": "20% reward for tax evasion info; immediate informant expense up to NPR 10,000 for revenue leakage info; informant's identity kept confidential.",
+              "page_range": [
+                26,
+                27
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 127,
+              "page_bboxes": [
+                {
+                  "page": 26,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 27,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 124,
+          "page_bboxes": [
+            {
+              "page": 26,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 27,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 99,
+      "page_bboxes": [
+        {
+          "page": 21,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 22,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.80507267027645,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "9",
+      "title": "Schedule-1: Income Tax Rates and Related Provisions",
+      "summary": "Extensive amendments to income tax rates for natural persons, couples, capital gains, presumptive tax, and various entities.",
+      "page_range": [
+        27,
+        46
+      ],
+      "children": [
+        {
+          "nodeId": "9.1",
+          "title": "Tax on Royal Family Income (Dafa 141क) (Repealed)",
+          "summary": "Repeal of provision for tax on income of King, Queen, Crown Prince, and Royal Family members; repealed by Ganatantra Sudridhikaran Ain 2066.",
+          "page_range": [
+            27,
+            27
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 129,
+          "page_bboxes": [
+            {
+              "page": 27,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.2",
+          "title": "Resident Natural Persons: Tiered Income Tax Rates (Dafa 1(1))",
+          "summary": "Evolution of tiered income tax rates and thresholds for resident natural persons.",
+          "page_range": [
+            27,
+            31
+          ],
+          "children": [
+            {
+              "nodeId": "9.2.1",
+              "title": "Original Rates (2079 Amendment Context)",
+              "summary": "0% up to NPR 55k; 15% on excess up to NPR 130k; NPR 11,250 + 25% on excess above NPR 130k.",
+              "page_range": [
+                27,
+                27
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 131,
+              "page_bboxes": [
+                {
+                  "page": 27,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "Thresholds revised to NPR 65k, 85k, 140k, 160k.",
+              "page_range": [
+                27,
+                28
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 132,
+              "page_bboxes": [
+                {
+                  "page": 27,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 28,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.3",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Thresholds revised to NPR 80k, 100k, 155k, 175k.",
+              "page_range": [
+                28,
+                28
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 133,
+              "page_bboxes": [
+                {
+                  "page": 28,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.4",
+              "title": "Economic Ordinance 2062 Revisions",
+              "summary": "Thresholds revised to NPR 100k, 125k, 175k, 200k.",
+              "page_range": [
+                28,
+                28
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 134,
+              "page_bboxes": [
+                {
+                  "page": 28,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.5",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "0% up to NPR 115k; 15% on excess up to NPR 200k; NPR 12,750 + 25% on excess above NPR 200k.",
+              "page_range": [
+                28,
+                28
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 135,
+              "page_bboxes": [
+                {
+                  "page": 28,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.6",
+              "title": "Economic Act 2066 Revisions (Employment Income)",
+              "summary": "1% up to NPR 160k (not for sole proprietorships); NPR 1,600 + 15% on excess up to NPR 260k; NPR 16,600 + 25% on excess above NPR 260k.",
+              "page_range": [
+                28,
+                29
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 136,
+              "page_bboxes": [
+                {
+                  "page": 28,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 29,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.7",
+              "title": "Economic Ordinance 2067 Revisions (Employment Income)",
+              "summary": "1% up to NPR 160k; NPR 1,600 + 15% on excess up to NPR 260k; NPR 16,600 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                29,
+                29
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 137,
+              "page_bboxes": [
+                {
+                  "page": 29,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.8",
+              "title": "Economic Act 2070 Revisions (Employment Income)",
+              "summary": "1% up to NPR 200k; NPR 2,000 + 15% on excess up to NPR 300k; NPR 17,000 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                29,
+                29
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 138,
+              "page_bboxes": [
+                {
+                  "page": 29,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.9",
+              "title": "Economic Act 2071 Revisions (Employment Income)",
+              "summary": "1% up to NPR 250k; NPR 2,500 + 15% on excess up to NPR 350k; NPR 17,500 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                30,
+                30
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 139,
+              "page_bboxes": [
+                {
+                  "page": 30,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.10",
+              "title": "Economic Act 2073 Revisions (Employment Income)",
+              "summary": "1% up to NPR 350k (not for sole proprietorships/pension); NPR 3,500 + 15% on excess up to NPR 450k; NPR 18,500 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                30,
+                30
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 140,
+              "page_bboxes": [
+                {
+                  "page": 30,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.2.11",
+              "title": "Economic Act 2076 Revisions (Employment Income)",
+              "summary": "1% up to NPR 400k (not for sole proprietorships/pension/social security); NPR 4,000 + 10% on excess up to NPR 500k; NPR 14,000 + 20% on excess up to NPR 700k; NPR 54,000 + 30% on excess up to NPR 2M; 20% additional tax above NPR 2M.",
+              "page_range": [
+                30,
+                31
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 141,
+              "page_bboxes": [
+                {
+                  "page": 30,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 31,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 130,
+          "page_bboxes": [
+            {
+              "page": 27,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 28,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.3",
+          "title": "Resident Married Couples: Tiered Income Tax Rates (Dafa 1(2))",
+          "summary": "Evolution of tiered income tax rates and thresholds for resident married couples electing joint assessment.",
+          "page_range": [
+            31,
+            36
+          ],
+          "children": [
+            {
+              "nodeId": "9.3.1",
+              "title": "Original Rates (2076 Amendment Context)",
+              "summary": "1% up to NPR 75k; 15% on excess up to NPR 150k; NPR 11,250 + 25% on excess above NPR 150k.",
+              "page_range": [
+                31,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 143,
+              "page_bboxes": [
+                {
+                  "page": 31,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "Thresholds revised to NPR 85k, 160k.",
+              "page_range": [
+                32,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 144,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.3",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Thresholds revised to NPR 100k, 155k.",
+              "page_range": [
+                32,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 145,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.4",
+              "title": "Economic Ordinance 2061 Revisions",
+              "summary": "Thresholds revised to NPR 100k, 175k.",
+              "page_range": [
+                32,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 146,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.5",
+              "title": "Economic Ordinance 2062 Revisions",
+              "summary": "Thresholds revised to NPR 125k, 200k.",
+              "page_range": [
+                32,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 147,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.6",
+              "title": "Economic Ordinance 2064 Revisions",
+              "summary": "Thresholds revised to NPR 140k, 225k; base tax NPR 12,750.",
+              "page_range": [
+                32,
+                32
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 148,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.7",
+              "title": "Economic Ordinance 2066 Revisions (Employment Income)",
+              "summary": "1% up to NPR 200k (not for sole proprietorships); NPR 2,000 + 15% on excess up to NPR 300k; NPR 17,000 + 25% on excess above NPR 300k.",
+              "page_range": [
+                32,
+                33
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 149,
+              "page_bboxes": [
+                {
+                  "page": 32,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 33,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.8",
+              "title": "Economic Ordinance 2067 Revisions (Employment Income)",
+              "summary": "1% up to NPR 200k; NPR 2,000 + 15% on excess up to NPR 300k; NPR 17,000 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                33,
+                33
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 150,
+              "page_bboxes": [
+                {
+                  "page": 33,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.9",
+              "title": "Economic Act 2070 Revisions (Employment Income)",
+              "summary": "1% up to NPR 250k; NPR 2,500 + 15% on excess up to NPR 350k; NPR 17,500 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                33,
+                33
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 151,
+              "page_bboxes": [
+                {
+                  "page": 33,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.10",
+              "title": "Economic Act 2071 Revisions (Employment Income)",
+              "summary": "1% up to NPR 300k; NPR 3,000 + 15% on excess up to NPR 400k; NPR 18,000 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                34,
+                34
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 152,
+              "page_bboxes": [
+                {
+                  "page": 34,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.11",
+              "title": "Economic Act 2073 Revisions (Employment Income)",
+              "summary": "1% up to NPR 400k (not for sole proprietorships/pension); NPR 4,000 + 15% on excess up to NPR 500k; NPR 19,000 + 25% on excess up to NPR 2.5M; 40% additional tax above NPR 2.5M.",
+              "page_range": [
+                34,
+                34
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 153,
+              "page_bboxes": [
+                {
+                  "page": 34,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.12",
+              "title": "Economic Act 2075 Revisions (Employment Income)",
+              "summary": "1% up to NPR 400k (not for sole proprietorships/pension/social security); NPR 4,000 + 15% on excess up to NPR 500k; NPR 19,000 + 20% on excess up to NPR 700k; NPR 59,000 + 30% on excess up to NPR 2M; 20% additional tax above NPR 2M.",
+              "page_range": [
+                34,
+                35
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 154,
+              "page_bboxes": [
+                {
+                  "page": 34,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 35,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.3.13",
+              "title": "Economic Act 2076 Revisions (Employment Income)",
+              "summary": "1% up to NPR 450k (not for sole proprietorships/pension/social security); NPR 4,500 + 10% on excess up to NPR 550k; NPR 14,500 + 20% on excess up to NPR 750k; NPR 54,500 + 30% on excess up to NPR 2M; 20% additional tax above NPR 2M.",
+              "page_range": [
+                35,
+                36
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 155,
+              "page_bboxes": [
+                {
+                  "page": 35,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 36,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 142,
+          "page_bboxes": [
+            {
+              "page": 31,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 32,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.4",
+          "title": "Capital Gains Tax Application Conditions (Dafa 1(3))",
+          "summary": "Evolution of income thresholds for resident natural persons and couples for capital gains tax application.",
+          "page_range": [
+            36,
+            38
+          ],
+          "children": [
+            {
+              "nodeId": "9.4.1",
+              "title": "Original Conditions (2079 Amendment Context)",
+              "summary": "NP income > NPR 55k, or couple income > NPR 75k; capital gains from non-business taxable assets included.",
+              "page_range": [
+                36,
+                36
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 157,
+              "page_bboxes": [
+                {
+                  "page": 36,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "Thresholds revised to NP > NPR 65k, couple > NPR 85k.",
+              "page_range": [
+                36,
+                36
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 158,
+              "page_bboxes": [
+                {
+                  "page": 36,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.3",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Thresholds revised to NP > NPR 80k, couple > NPR 100k.",
+              "page_range": [
+                36,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 159,
+              "page_bboxes": [
+                {
+                  "page": 36,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.4",
+              "title": "Economic Ordinance 2062 Revisions",
+              "summary": "Thresholds revised to NP > NPR 100k, couple > NPR 125k.",
+              "page_range": [
+                37,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 160,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.5",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "Thresholds revised to NP > NPR 115k, couple > NPR 140k.",
+              "page_range": [
+                37,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 161,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.6",
+              "title": "Economic Act 2066 Revisions",
+              "summary": "Thresholds revised to NP > NPR 160k, couple > NPR 200k.",
+              "page_range": [
+                37,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 162,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.7",
+              "title": "Economic Act 2070 Revisions",
+              "summary": "Thresholds revised to NP > NPR 200k, couple > NPR 250k.",
+              "page_range": [
+                37,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 163,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.8",
+              "title": "Economic Act 2071 Revisions",
+              "summary": "Thresholds revised to NP > NPR 250k, couple > NPR 300k.",
+              "page_range": [
+                37,
+                37
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 164,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.9",
+              "title": "Economic Act 2073 Revisions",
+              "summary": "Thresholds revised to NP > NPR 350k, couple > NPR 400k.",
+              "page_range": [
+                37,
+                38
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 165,
+              "page_bboxes": [
+                {
+                  "page": 37,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 38,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.4.10",
+              "title": "Economic Act 2076 Revisions",
+              "summary": "Thresholds revised to NP > NPR 400k, couple > NPR 450k; capital gains from non-business taxable assets included.",
+              "page_range": [
+                38,
+                38
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 166,
+              "page_bboxes": [
+                {
+                  "page": 38,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 156,
+          "page_bboxes": [
+            {
+              "page": 36,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 37,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.5",
+          "title": "Capital Gains Tax Calculation (Dafa 1(4))",
+          "summary": "Evolution of capital gains tax calculation methods, thresholds, and specific rates for land/house and listed entity interests.",
+          "page_range": [
+            38,
+            41
+          ],
+          "children": [
+            {
+              "nodeId": "9.5.1",
+              "title": "Original Calculation (2079 Amendment Context)",
+              "summary": "Tax on higher of (total income - capital gain) or threshold (NP NPR 55k, couple NPR 75k); remaining capital gain at 10%.",
+              "page_range": [
+                38,
+                38
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 168,
+              "page_bboxes": [
+                {
+                  "page": 38,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.2",
+              "title": "Economic Ordinance 2059 Revisions",
+              "summary": "Thresholds revised to NP NPR 65k, couple NPR 85k; original proviso repealed.",
+              "page_range": [
+                38,
+                38
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 169,
+              "page_bboxes": [
+                {
+                  "page": 38,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.3",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Thresholds revised to NP NPR 80k, couple NPR 100k.",
+              "page_range": [
+                38,
+                38
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 170,
+              "page_bboxes": [
+                {
+                  "page": 38,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.4",
+              "title": "Economic Ordinance 2062 Revisions",
+              "summary": "Thresholds revised to NP NPR 100k, couple NPR 125k.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 171,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.5",
+              "title": "Economic Act 2064 Revisions",
+              "summary": "Thresholds revised to NP NPR 115k, couple NPR 140k.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 172,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.6",
+              "title": "Economic Act 2066 Revisions",
+              "summary": "Thresholds revised to NP NPR 160k, couple NPR 200k; 5% for land/house ownership > 5 years, 10% for < 5 years.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 173,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.7",
+              "title": "Economic Act 2068 Additions",
+              "summary": "Added 5% tax on gains from disposal of interest in Nepal Stock Exchange listed entities.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 174,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.8",
+              "title": "Economic Act 2070 Revisions",
+              "summary": "Thresholds revised to NP NPR 200k, couple NPR 250k.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 175,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.9",
+              "title": "Economic Act 2071 Revisions",
+              "summary": "Thresholds revised to NP NPR 250k, couple NPR 300k.",
+              "page_range": [
+                39,
+                39
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 176,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.10",
+              "title": "Economic Act 2073 Revisions",
+              "summary": "Thresholds revised to NP NPR 350k, couple NPR 400k.",
+              "page_range": [
+                39,
+                40
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 177,
+              "page_bboxes": [
+                {
+                  "page": 39,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 40,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.11",
+              "title": "Economic Act 2075 Revisions",
+              "summary": "Thresholds revised to NP NPR 350k, couple NPR 400k; land/house disposal: 2.5% (>5 years), 5% (<5 years); listed entity interest: 5%.",
+              "page_range": [
+                40,
+                40
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 178,
+              "page_bboxes": [
+                {
+                  "page": 40,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.5.12",
+              "title": "Economic Act 2078 Revisions",
+              "summary": "Thresholds revised to NP NPR 400k, couple NPR 450k; listed entity interest: 5% (>365 days), 7.5% (<=365 days).",
+              "page_range": [
+                40,
+                41
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 179,
+              "page_bboxes": [
+                {
+                  "page": 40,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.3251638643488,
+                    "x2": 453.98428053204356,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 41,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 167,
+          "page_bboxes": [
+            {
+              "page": 38,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 39,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 453.98428053204356,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.6",
+          "title": "Remote Area Tax Exemption/Deduction (Dafa 1(5))",
+          "summary": "Evolution of tax benefits for natural persons residing in remote areas.",
+          "page_range": [
+            41,
+            41
+          ],
+          "children": [
+            {
+              "nodeId": "9.6.1",
+              "title": "Original Exemption",
+              "summary": "Up to NPR 30,000 increase in tax-free threshold (NPR 55k/75k); amended by Economic Act 2067.",
+              "page_range": [
+                41,
+                41
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 181,
+              "page_bboxes": [
+                {
+                  "page": 41,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.6.2",
+              "title": "Economic Ordinance 2060 Revisions",
+              "summary": "Up to NPR 30,000 deduction from taxable income for remote area allowance.",
+              "page_range": [
+                41,
+                41
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 182,
+              "page_bboxes": [
+                {
+                  "page": 41,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 180,
+          "page_bboxes": [
+            {
+              "page": 41,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.7",
+          "title": "Presumptive Tax Rates (Dafa 1(7))",
+          "summary": "Evolution of presumptive tax rates based on geographical area for small businesses.",
+          "page_range": [
+            41,
+            42
+          ],
+          "children": [
+            {
+              "nodeId": "9.7.1",
+              "title": "Original Rates",
+              "summary": "NPR 2,000 (Metropolitan/Sub-Metropolitan), NPR 1,500 (Municipality), NPR 1,000 (Other areas); amended by Economic Act 2076.",
+              "page_range": [
+                41,
+                42
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 184,
+              "page_bboxes": [
+                {
+                  "page": 41,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 42,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.7.2",
+              "title": "Economic Act 2065 Revisions",
+              "summary": "NPR 5,000 (Metropolitan/Sub-Metropolitan), NPR 2,500 (Municipality), NPR 1,500 (Other areas).",
+              "page_range": [
+                42,
+                42
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 185,
+              "page_bboxes": [
+                {
+                  "page": 42,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 183,
+          "page_bboxes": [
+            {
+              "page": 41,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 42,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.8",
+          "title": "Pension Income Deduction (Dafa 1(9)) (Repealed)",
+          "summary": "Repeal of additional 25% deduction from taxable income for pension income of resident natural persons/couples; repealed by Economic Act 2077.",
+          "page_range": [
+            42,
+            42
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 186,
+          "page_bboxes": [
+            {
+              "page": 42,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.9",
+          "title": "Investment Insurance Premium Deduction (Dafa 1(10))",
+          "summary": "Amendments to the deduction limit for investment insurance premiums.",
+          "page_range": [
+            42,
+            42
+          ],
+          "children": [
+            {
+              "nodeId": "9.9.1",
+              "title": "Original Deduction Limit",
+              "summary": "Lower of 7% of insured amount or NPR 10,000; amended by Economic Act 2065.",
+              "page_range": [
+                42,
+                42
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 188,
+              "page_bboxes": [
+                {
+                  "page": 42,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.9.2",
+              "title": "Economic Act 2075/2079 Revisions",
+              "summary": "Deduction limit amended to NPR 20,000, then NPR 25,000.",
+              "page_range": [
+                42,
+                42
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 189,
+              "page_bboxes": [
+                {
+                  "page": 42,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 187,
+          "page_bboxes": [
+            {
+              "page": 42,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.10",
+          "title": "Annual Tax on Rental Vehicles (Dafa 1(13))",
+          "summary": "Evolution of annual tax rates on rental vehicle owners, collected by Transport Management Office.",
+          "page_range": [
+            42,
+            43
+          ],
+          "children": [
+            {
+              "nodeId": "9.10.1",
+              "title": "Economic Act 2079 Notification Rates",
+              "summary": "Rates from NPR 1,500 (Power Tiller) to NPR 12,000 (Excavator, Oil Tanker) based on vehicle type and engine capacity.",
+              "page_range": [
+                42,
+                43
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 191,
+              "page_bboxes": [
+                {
+                  "page": 42,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.5651182673126,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 43,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 184.04502707324025,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.10.2",
+              "title": "Economic Act 2072 Revisions",
+              "summary": "Rates from NPR 1,000 (Tractor/Power Tiller) to NPR 3,000 (Minibus/Truck); final tax for natural person owners.",
+              "page_range": [
+                43,
+                43
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 192,
+              "page_bboxes": [
+                {
+                  "page": 43,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 184.04502707324025,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.10.3",
+              "title": "Original Rates (Before 2072)",
+              "summary": "Rates from NPR 750 (Tractor/Power Tiller) to NPR 1,500 (Minibus/Truck); final tax for natural person owners.",
+              "page_range": [
+                43,
+                43
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 193,
+              "page_bboxes": [
+                {
+                  "page": 43,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 184.04502707324025,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 190,
+          "page_bboxes": [
+            {
+              "page": 42,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.5651182673126,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 43,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 184.04502707324025,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.11",
+          "title": "Reduced Tax for Special Industries (Dafa 1(14)) (Repealed)",
+          "summary": "Repeal of reduced tax rate (20% instead of 25%) for natural persons in special industries under Dafa 11; repealed by Economic Act 2076.",
+          "page_range": [
+            43,
+            43
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 194,
+          "page_bboxes": [
+            {
+              "page": 43,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 184.04502707324025,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.12",
+          "title": "Reduced Tax for Export Income (Dafa 1(15)) (Repealed)",
+          "summary": "Repeal of reduced tax rate (15% instead of 25%) for natural persons on export income; repealed by Economic Act 2076.",
+          "page_range": [
+            43,
+            43
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 195,
+          "page_bboxes": [
+            {
+              "page": 43,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 184.04502707324025,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.13",
+          "title": "Turnover Tax Rates (Dafa 1(17))",
+          "summary": "Evolution of turnover tax rates for different business types and turnover thresholds.",
+          "page_range": [
+            44,
+            44
+          ],
+          "children": [
+            {
+              "nodeId": "9.13.1",
+              "title": "Economic Act 2072 Rates",
+              "summary": "0.5% (gas/cigarette), 1.5% (other goods), 2% (services); minimum NPR 5,000 tax.",
+              "page_range": [
+                44,
+                44
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 197,
+              "page_bboxes": [
+                {
+                  "page": 44,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.13.2",
+              "title": "Economic Act 2076 Revisions",
+              "summary": "For turnover > NPR 2M: 0.25% (gas/cigarette), 0.75% (other goods), 2% (services).",
+              "page_range": [
+                44,
+                44
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 198,
+              "page_bboxes": [
+                {
+                  "page": 44,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 196,
+          "page_bboxes": [
+            {
+              "page": 44,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.14",
+          "title": "Cooperative Tax Rates (Dafa 2(3))",
+          "summary": "Evolution of tax rates for cooperatives registered under Cooperative Act 2074, for non-exempt transactions, based on geographical area.",
+          "page_range": [
+            44,
+            46
+          ],
+          "children": [
+            {
+              "nodeId": "9.14.1",
+              "title": "Economic Act 2079 Notification Rates",
+              "summary": "5% (Municipality), 7% (Sub-Metropolitan), 10% (Metropolitan).",
+              "page_range": [
+                44,
+                45
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 200,
+              "page_bboxes": [
+                {
+                  "page": 44,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.80507267027645,
+                    "x2": 453.74445787988714,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 45,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.14.2",
+              "title": "Economic Act 2079 Rates",
+              "summary": "7.5% (Municipality), 10% (Sub-Metropolitan), 15% (Metropolitan).",
+              "page_range": [
+                45,
+                45
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 201,
+              "page_bboxes": [
+                {
+                  "page": 45,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.14.3",
+              "title": "Economic Act 2077 Revisions",
+              "summary": "5% (Municipality), 7% (Sub-Metropolitan), 10% (Metropolitan).",
+              "page_range": [
+                46,
+                46
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 202,
+              "page_bboxes": [
+                {
+                  "page": 46,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.14.4",
+              "title": "Economic Act 2079 Final Revisions",
+              "summary": "7.5% (Municipality), 10% (Sub-Metropolitan), 15% (Metropolitan).",
+              "page_range": [
+                46,
+                46
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 203,
+              "page_bboxes": [
+                {
+                  "page": 46,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 199,
+          "page_bboxes": [
+            {
+              "page": 44,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.80507267027645,
+                "x2": 453.74445787988714,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 45,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.15",
+          "title": "Entity Tax Rates: Special Industries and Infrastructure (Dafa 2(3))",
+          "summary": "Amendments to 20% tax rate for entities in special industries, infrastructure, and transport.",
+          "page_range": [
+            45,
+            46
+          ],
+          "children": [
+            {
+              "nodeId": "9.15.1",
+              "title": "Original Scope",
+              "summary": "20% tax for entities in Dafa 11 special industries, or constructing/operating roads, bridges, tunnels, ropeways, flyovers, or trolley buses/trams.",
+              "page_range": [
+                45,
+                45
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 205,
+              "page_bboxes": [
+                {
+                  "page": 45,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.15.2",
+              "title": "Economic Act 2067: Ropeway Clarification",
+              "summary": "Clarification that 'ropeway' includes cable cars for goods or passenger transport.",
+              "page_range": [
+                45,
+                45
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 206,
+              "page_bboxes": [
+                {
+                  "page": 45,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "9.15.3",
+              "title": "Economic Act 2075: Infrastructure Scope Expansion",
+              "summary": "Expanded infrastructure projects to include 'railway' in addition to existing categories.",
+              "page_range": [
+                45,
+                46
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 207,
+              "page_bboxes": [
+                {
+                  "page": 45,
+                  "bbox": {
+                    "x0": 159.72188633615477,
+                    "y0": 183.5651182673126,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                },
+                {
+                  "page": 46,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 204,
+          "page_bboxes": [
+            {
+              "page": 45,
+              "bbox": {
+                "x0": 159.72188633615477,
+                "y0": 183.5651182673126,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            },
+            {
+              "page": 46,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.16",
+          "title": "Tax on Public Infrastructure/Hydropower (Dafa 2(4)) (Repealed)",
+          "summary": "Repeal of 20% tax on public entities for public infrastructure (build-operate-transfer) and hydropower projects; repealed by Economic Act 2076.",
+          "page_range": [
+            46,
+            46
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 208,
+          "page_bboxes": [
+            {
+              "page": 46,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.17",
+          "title": "Tax on Estates and Trusts (Dafa 2(5))",
+          "summary": "Amendment to tax treatment of taxable income for deceased resident's estate or non-resident natural person's trust.",
+          "page_range": [
+            46,
+            46
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 209,
+          "page_bboxes": [
+            {
+              "page": 46,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "9.18",
+          "title": "Tax on Non-Resident Income (Dafa 2(7))",
+          "summary": "Amendments to tax rates for non-resident's taxable income related to Dafa 70, with specific rates for transport/telecom services.",
+          "page_range": [
+            46,
+            46
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 210,
+          "page_bboxes": [
+            {
+              "page": 46,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 128,
+      "page_bboxes": [
+        {
+          "page": 27,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.3251638643488,
+            "x2": 453.74445787988714,
+            "y2": 691.7885437446565
+          }
+        },
+        {
+          "page": 28,
+          "bbox": {
+            "x0": 159.72188633615477,
+            "y0": 183.5651182673126,
+            "x2": 453.98428053204356,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    },
+    {
+      "nodeId": "10",
+      "title": "Schedule-2: Depreciation Provisions",
+      "summary": "Amendments to additional depreciation rates and specific deductions for energy production assets.",
+      "page_range": [
+        47,
+        47
+      ],
+      "children": [
+        {
+          "nodeId": "10.1",
+          "title": "Additional Depreciation Rates (Dafa 1(2))",
+          "summary": "Additional 1/3 depreciation deduction for specific projects under Dafa 19(2) and entities under Schedule-1, Dafa 2(3) and (4); amended by Economic Act 2077.",
+          "page_range": [
+            47,
+            47
+          ],
+          "children": [],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 212,
+          "page_bboxes": [
+            {
+              "page": 47,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        },
+        {
+          "nodeId": "10.2",
+          "title": "Depreciation for Energy Production Assets (Dafa 1(3))",
+          "summary": "Evolution of 50% depreciation deduction for capital assets used to produce energy for own use.",
+          "page_range": [
+            47,
+            47
+          ],
+          "children": [
+            {
+              "nodeId": "10.2.1",
+              "title": "Original Deduction for Manufacturing Industries",
+              "summary": "50% depreciation for manufacturing industries' capital assets used for own energy production; added by Economic Act 2067.",
+              "page_range": [
+                47,
+                47
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 214,
+              "page_bboxes": [
+                {
+                  "page": 47,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            },
+            {
+              "nodeId": "10.2.2",
+              "title": "Economic Act 2072 Revisions",
+              "summary": "50% depreciation for any person's capital assets used for own business energy production.",
+              "page_range": [
+                47,
+                47
+              ],
+              "children": [],
+              "start_char": -1,
+              "end_char": -1,
+              "id": 215,
+              "page_bboxes": [
+                {
+                  "page": 47,
+                  "bbox": {
+                    "x0": 141.73518742442565,
+                    "y0": 183.3251638643488,
+                    "x2": 454.2241031841999,
+                    "y2": 691.7885437446565
+                  }
+                }
+              ]
+            }
+          ],
+          "start_char": -1,
+          "end_char": -1,
+          "id": 213,
+          "page_bboxes": [
+            {
+              "page": 47,
+              "bbox": {
+                "x0": 141.73518742442565,
+                "y0": 183.3251638643488,
+                "x2": 454.2241031841999,
+                "y2": 691.7885437446565
+              }
+            }
+          ]
+        }
+      ],
+      "start_char": -1,
+      "end_char": -1,
+      "id": 211,
+      "page_bboxes": [
+        {
+          "page": 47,
+          "bbox": {
+            "x0": 141.73518742442565,
+            "y0": 183.3251638643488,
+            "x2": 454.2241031841999,
+            "y2": 691.7885437446565
+          }
+        }
+      ]
+    }
+  ]
+}

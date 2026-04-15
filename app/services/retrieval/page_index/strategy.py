@@ -5,7 +5,9 @@ Implements RetrievalStrategy using LLM-guided hierarchical tree navigation.
 """
 
 import asyncio
+import json
 from copy import deepcopy
+from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
@@ -21,6 +23,7 @@ from app.services.retrieval.page_index.cache import (
 )
 from app.services.retrieval.page_index.section_retriever import SectionRetriever
 from app.services.retrieval.page_index.tree_builder import TreeBuilder
+from app.settings import settings
 
 
 class PageIndexStrategy(RetrievalStrategy):
@@ -180,6 +183,21 @@ class PageIndexStrategy(RetrievalStrategy):
         )
         node_count = self.tree_builder._count_nodes(tree.get("nodes", []))
         logger.info(f"PageIndex tree saved: {node_count} nodes")
+
+        # Also dump the tree to a JSON file on disk for inspection/debugging.
+        # Non-fatal: failure here must never break ingest.
+        try:
+            trees_dir = Path(settings.upload_dir) / "trees"
+            trees_dir.mkdir(parents=True, exist_ok=True)
+            tree_path = trees_dir / f"{document_id}.tree.json"
+            tree_path.write_text(
+                json.dumps(tree, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            logger.info(f"[{document_id[:8]}] Tree written to {tree_path}")
+        except Exception as e:  # noqa: BLE001 - disk dump is best-effort only
+            logger.warning(f"[{document_id[:8]}] Failed to write tree.json (non-fatal): {e}")
+
         await _notify(f"PageIndex tree saved ({node_count} nodes)")
 
         # Build warnings payload (only meaningful for the custom-tree path —

@@ -93,6 +93,10 @@ class TreeBuilder:
             temperature=0.1,
             max_tokens=_MAX_OUTPUT_TOKENS,
             add_warning=False,  # never append prose warnings — they corrupt JSON
+            # Force native JSON mode: Gemini stops exploring formatting and
+            # spends far fewer thinking tokens. Critical on Gemini 2.5 Flash
+            # which otherwise burns 40K+ thinking tokens on Nepali legal JSON.
+            response_mime_type="application/json",
         )
 
         tree = self._parse_json_response(response)
