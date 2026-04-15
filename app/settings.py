@@ -15,7 +15,16 @@ from app.models.enums import Environment, StorageBackend, RetrievalStrategyType
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+        # Let the `mode="before"` validators parse comma-separated strings for
+        # List fields (cors_origins, allowed_extensions, ocr_languages) instead
+        # of pydantic-settings trying to JSON-decode them first.
+        enable_decoding=False,
+    )
 
     # Application
     app_name: str = Field(default="Document Parser Service", description="Application name")
