@@ -194,7 +194,7 @@ class TreeBuilder:
 
     def _attach_char_offsets(
         self, nodes: list, markdown: str, page_bbox_map: list[dict] | None = None,
-    ) -> None:
+    ) -> list[dict]:
         """Record start_char/end_char for each node so text extraction is a simple slice.
 
         Two-pass approach:
@@ -203,7 +203,11 @@ class TreeBuilder:
           Pass 2: Collect all assigned start_chars as boundary positions, then
                   set each node's end_char to the next boundary (or EOF).
 
-        This avoids matching body-text mentions of titles as boundaries.
+        Returns:
+            A list of ``{"nodeId": ..., "title": ...}`` dicts for every node
+            whose title was NOT found in the markdown (``start_char == -1``).
+            The LLM-generated path ignores the return value; the custom-tree
+            path uses it to populate ``ingest_warnings``.
         """
         # Build page → char range lookup for constraining searches
         page_char_ranges: dict[int, tuple[int, int]] = {}
@@ -217,6 +221,9 @@ class TreeBuilder:
         # Pass 2: collect all start positions, then assign end_char
         all_starts = sorted(set(self._collect_start_chars(nodes)))
         self._assign_end_chars(nodes, markdown, all_starts)
+
+        # Pass 3: collect nodeIds whose titles were not found
+        return self._collect_unmatched(nodes)
 
     @staticmethod
     def _collect_all_titles(nodes: list) -> list[str]:
@@ -290,6 +297,18 @@ class TreeBuilder:
             if sc >= 0:
                 result.append(sc)
             result.extend(self._collect_start_chars(node.get("children", [])))
+        return result
+
+    def _collect_unmatched(self, nodes: list) -> list[dict]:
+        """Recursively collect ``{nodeId, title}`` for nodes with start_char == -1."""
+        result: list[dict] = []
+        for node in nodes:
+            if node.get("start_char", -1) < 0:
+                result.append({
+                    "nodeId": node.get("nodeId", ""),
+                    "title": node.get("title", ""),
+                })
+            result.extend(self._collect_unmatched(node.get("children", [])))
         return result
 
     def _assign_end_chars(self, nodes: list, markdown: str, all_starts: list[int]) -> None:
