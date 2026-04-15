@@ -40,6 +40,7 @@ class IngestionPipeline:
         strategy: RetrievalStrategy,
         language: str = "en",
         on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
+        custom_tree: dict | None = None,
     ) -> dict[str, Any]:
         """Run the full ingestion pipeline.
 
@@ -153,15 +154,27 @@ class IngestionPipeline:
                     logger.warning(f"Failed to save PDF/images: {e}")
 
             # Step 5: Strategy-specific storage (passes on_progress so chunked
-            # strategies can report per-chunk status)
-            await strategy.ingest(
+            # strategies can report per-chunk status).
+            # Only PageIndexStrategy accepts custom_tree; VectorStrategy does not.
+            # Omit the kwarg when None so we stay compatible with strategies
+            # that don't expose it.
+            ingest_kwargs: dict[str, Any] = {
+                "on_progress": on_progress,
+                "page_bbox_map": page_bbox_map,
+                "image_dimensions": image_dimensions,
+            }
+            if custom_tree is not None:
+                ingest_kwargs["custom_tree"] = custom_tree
+
+            strategy_result = await strategy.ingest(
                 document_id,
                 markdown,
                 metadata,
-                on_progress=on_progress,
-                page_bbox_map=page_bbox_map,
-                image_dimensions=image_dimensions,
+                **ingest_kwargs,
             )
+            # Back-compat: VectorStrategy.ingest() currently returns None.
+            if not isinstance(strategy_result, dict):
+                strategy_result = {}
 
             # Step 6: Record in document repository
             await _step("Saving document record...")
@@ -171,6 +184,8 @@ class IngestionPipeline:
                     filename=filename,
                     metadata=metadata,
                     strategy=strategy.__class__.__name__,
+                    custom_tree_provided=bool(strategy_result.get("custom_tree_provided", False)),
+                    ingest_warnings=strategy_result.get("ingest_warnings"),
                 )
 
             logger.info(f"Ingestion complete: {document_id}")

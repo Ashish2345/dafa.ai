@@ -167,7 +167,12 @@ class PageIndexNodeUpload(BaseModel):
     System-computed fields (``id``, ``start_char``, ``end_char``, ``page_bboxes``)
     are intentionally *not* present on this model — they are ignored/overwritten
     by the ingestion pipeline even if supplied.
+
+    Extra user-defined fields (e.g. ``keywords``, ``tags``) are allowed and
+    preserved in the saved tree so downstream tooling can use them.
     """
+
+    model_config = ConfigDict(extra="allow")
 
     nodeId: str = Field(..., min_length=1, description="Dotted id like '1.2.3'")
     title: str = Field(..., min_length=1)
@@ -190,6 +195,8 @@ class PageIndexNodeUpload(BaseModel):
 
 class PageIndexTreeUpload(BaseModel):
     """Top-level shape of a user-supplied page-index tree JSON file."""
+
+    model_config = ConfigDict(extra="allow")
 
     document_title: str = Field(..., min_length=1)
     language: str = Field(default="en", description="e.g. 'en' or 'ne'")

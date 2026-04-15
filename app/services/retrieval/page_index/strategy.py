@@ -5,6 +5,7 @@ Implements RetrievalStrategy using LLM-guided hierarchical tree navigation.
 """
 
 import asyncio
+from copy import deepcopy
 from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
@@ -119,7 +120,8 @@ class PageIndexStrategy(RetrievalStrategy):
         on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
         page_bbox_map: list[dict] | None = None,
         image_dimensions: dict | None = None,
-    ) -> None:
+        custom_tree: dict | None = None,
+    ) -> dict:
         # Invalidate file cache — will be rebuilt on first query
         invalidate_cache(document_id)
         language = metadata.get("language", "en")
@@ -133,25 +135,33 @@ class PageIndexStrategy(RetrievalStrategy):
                 except Exception as e:
                     logger.warning(f"Progress callback failed (non-fatal): {e}")
 
-        # Split here so we can report async progress between chunks
-        chunks = self.tree_builder.split_chunks(markdown)
-        total = len(chunks)
-
-        subtrees = []
-        for i, chunk in enumerate(chunks, 1):
-            await _notify(f"Building index tree: chunk {i}/{total} ({len(chunk):,} chars)...")
-            # Run the blocking LLM call in a thread pool so the event loop
-            # stays alive for MongoDB keepalives during the 1-2 min API call.
-            subtree = await asyncio.to_thread(self.tree_builder.build_chunk, chunk, language)
-            subtrees.append(subtree)
-
-        if total == 1:
-            tree = subtrees[0]
+        if custom_tree is not None:
+            await _notify("Using user-supplied page-index tree (skipping LLM generation)...")
+            # deepcopy so we don't mutate the caller's dict (it gets written to
+            # with start_char/end_char/id/page_bboxes by the post-processing steps).
+            tree = deepcopy(custom_tree)
         else:
-            tree = self.tree_builder._merge_trees(subtrees, language)
+            # Split here so we can report async progress between chunks
+            chunks = self.tree_builder.split_chunks(markdown)
+            total = len(chunks)
+
+            subtrees = []
+            for i, chunk in enumerate(chunks, 1):
+                await _notify(f"Building index tree: chunk {i}/{total} ({len(chunk):,} chars)...")
+                # Run the blocking LLM call in a thread pool so the event loop
+                # stays alive for MongoDB keepalives during the 1-2 min API call.
+                subtree = await asyncio.to_thread(self.tree_builder.build_chunk, chunk, language)
+                subtrees.append(subtree)
+
+            if total == 1:
+                tree = subtrees[0]
+            else:
+                tree = self.tree_builder._merge_trees(subtrees, language)
 
         tree["language"] = language
-        self.tree_builder._attach_char_offsets(tree.get("nodes", []), markdown, page_bbox_map)
+        unmatched_nodes = self.tree_builder._attach_char_offsets(
+            tree.get("nodes", []), markdown, page_bbox_map
+        )
         TreeBuilder._assign_node_ids(tree["nodes"])
         logger.info(f"[{document_id[:8]}] page_bbox_map received: {len(page_bbox_map) if page_bbox_map else 'None'} entries")
         if page_bbox_map:
@@ -171,6 +181,25 @@ class PageIndexStrategy(RetrievalStrategy):
         node_count = self.tree_builder._count_nodes(tree.get("nodes", []))
         logger.info(f"PageIndex tree saved: {node_count} nodes")
         await _notify(f"PageIndex tree saved ({node_count} nodes)")
+
+        # Build warnings payload (only meaningful for the custom-tree path —
+        # LLM-generated trees produce titles drawn from the same markdown, so
+        # unmatched_nodes there would just reflect OCR drift and isn't
+        # actionable. We surface warnings only when a user supplied the tree.)
+        if custom_tree is not None and unmatched_nodes:
+            ingest_warnings = {
+                "unmatched_nodes": unmatched_nodes,
+                "unmatched_count": len(unmatched_nodes),
+                "total_nodes": node_count,
+            }
+        else:
+            ingest_warnings = None
+
+        return {
+            "custom_tree_provided": custom_tree is not None,
+            "ingest_warnings": ingest_warnings,
+            "node_count": node_count,
+        }
 
     async def _filter_by_collection(self, document_ids: list[str], collection_name: str) -> list[str]:
         matched = []

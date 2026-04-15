@@ -5,6 +5,7 @@ Handles upload/ingest, listing, retrieval, and file serving.
 Merges old ingest.py, collections.py, files.py, and documents.py.
 """
 
+import json
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -12,7 +13,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app.api.v1.forms import ParseFormData
 from app.config.request_mapping import RequestConfigBuilder
@@ -21,6 +22,7 @@ from app.db.repositories.document_repository import DocumentRepository
 from app.db.repositories.file_storage import FileStorageRepository
 from app.db.repositories.ocr_bbox_repository import OcrBboxRepository
 from app.db.repositories.page_index_repository import PageIndexRepository
+from app.models.schemas import PageIndexTreeUpload
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.services.ingestion.processing import DocumentProcessor, MetadataExtractor
 from app.services.parsers.factory import ParserFactory
@@ -40,6 +42,7 @@ async def _run_ingestion_background(
     document_id: str,
     filename: str,
     form_data: ParseFormData,
+    custom_tree: Optional[dict] = None,
 ) -> None:
     """Background task: runs the full ingestion pipeline and cleans up the temp file."""
     try:
@@ -74,6 +77,7 @@ async def _run_ingestion_background(
             strategy=strategy,
             language=language,
             on_progress=on_progress,
+            custom_tree=custom_tree,
         )
 
         if result.get("status") == "failed":
@@ -102,6 +106,14 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: Optional[UploadFile] = File(None),
+    page_index_file: Optional[UploadFile] = File(
+        None,
+        description=(
+            "Optional user-supplied page-index tree JSON. When provided, the "
+            "pipeline skips LLM tree generation and uses this tree instead. "
+            "Only valid with strategy='page_index'."
+        ),
+    ),
     form_data: ParseFormData = Depends(ParseFormData.as_form()),
     current_user: dict = Depends(get_current_user),
 ):
@@ -110,6 +122,16 @@ async def upload_document(
     Returns immediately with ``status: processing``.
     Poll ``GET /documents/{document_id}`` to track progress via the
     ``status`` and ``progress_step`` fields.
+
+    Optional ``page_index_file`` (JSON):
+        When supplied, the pipeline skips LLM tree generation and uses the
+        provided hierarchical tree. Schema is validated synchronously; a
+        malformed or structurally-invalid file returns 400 before ingestion
+        starts. Titles in each node are matched against the OCR'd markdown;
+        unmatched nodes are recorded in ``ingest_warnings`` on the document
+        record (see ``GET /documents/{document_id}``). Only valid with
+        ``strategy='page_index'`` (or the default); rejected with 400 when
+        combined with ``strategy='vector'``.
     """
     original_filename = None
     if file and file.filename:
@@ -119,6 +141,47 @@ async def upload_document(
         parsed_url = urlparse(form_data.file_url)
         if parsed_url.path:
             original_filename = Path(parsed_url.path).name
+
+    # ------------------------------------------------------------------
+    # Custom page-index tree: parse and validate synchronously.
+    # Fail fast with 400 before we start the slow OCR background task.
+    # ------------------------------------------------------------------
+    custom_tree: Optional[dict] = None
+    if page_index_file is not None:
+        # Strategy compatibility — only page_index supports custom trees.
+        strategy_name = (getattr(form_data, "strategy", None) or "page_index").lower()
+        if strategy_name == "vector":
+            raise HTTPException(
+                status_code=400,
+                detail="page_index_file is only valid with strategy='page_index'.",
+            )
+
+        raw = await page_index_file.read()
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"page_index_file is not valid JSON: {exc.msg} "
+                    f"at line {exc.lineno} col {exc.colno}"
+                ),
+            ) from exc
+
+        try:
+            tree_model = PageIndexTreeUpload.model_validate(parsed)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "page_index_file failed schema validation",
+                    "errors": exc.errors(),
+                },
+            ) from exc
+
+        # Dump back to a plain dict (preserves extra fields like ``keywords``
+        # because PageIndexTreeUpload/PageIndexNodeUpload use extra='allow').
+        custom_tree = tree_model.model_dump()
 
     try:
         from app.services.download import FileHandler
@@ -146,6 +209,7 @@ async def upload_document(
             document_id,
             filename,
             form_data,
+            custom_tree,
         )
 
         logger.info(f"Ingestion queued: {document_id} ({filename})")
