@@ -26,6 +26,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import api_router
+from app.config.plan_loader import plan_catalog
 from app.db.mongodb import mongodb
 from app.settings import settings
 from app.utils.exceptions import AppException
@@ -47,6 +48,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.app_name} in {settings.environment.value} mode")
     try:
         await mongodb.connect(settings)
+        # Load plan catalog from config/plans.yaml
+        plan_catalog.load()
         logger.info("Application startup complete")
     except Exception as e:
         logger.error(f"Failed to start application: {e}")

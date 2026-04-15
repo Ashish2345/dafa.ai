@@ -97,6 +97,7 @@ class SectionRetriever:
                     "summary": node.get("summary", ""),
                     "text": section_text,
                     "page_range": page_range,
+                    "page_bboxes": node.get("page_bboxes", []),
                     "metadata": {
                         "source": "page_index",
                         "node_id": node_id,

@@ -16,6 +16,30 @@ from app.settings import settings
 from app.services.llm.response_handler import ResponseHandler
 
 
+# ---------------------------------------------------------------------------
+# Gemini pricing (USD per 1M tokens). Update here when Google changes rates.
+# Gemini 2.5 Flash, text I/O. thoughts_token_count is billed at the OUTPUT rate.
+# Source: https://ai.google.dev/gemini-api/docs/pricing  (verify periodically)
+# ---------------------------------------------------------------------------
+_PRICE_PER_1M = {
+    "gemini-2.5-flash": {"input": 0.30, "output": 2.50, "thoughts": 2.50},
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.00, "thoughts": 10.00},
+    "gemini-2.0-flash": {"input": 0.10, "output": 0.40, "thoughts": 0.40},
+}
+
+
+def _cost_usd(model: str, in_tok: int, out_tok: int, think_tok: int) -> float:
+    """Compute per-call cost in USD. Returns 0.0 if model is not in price table."""
+    rates = _PRICE_PER_1M.get(model)
+    if not rates:
+        return 0.0
+    return (
+        in_tok * rates["input"]
+        + out_tok * rates["output"]
+        + think_tok * rates["thoughts"]
+    ) / 1_000_000
+
+
 class LLMService:
     """
     Service for calling LLM APIs.
@@ -64,6 +88,7 @@ class LLMService:
         max_tokens: Optional[int] = None,
         return_metadata: bool = False,
         add_warning: bool = True,
+        response_mime_type: Optional[str] = None,
     ) -> Union[str, Tuple[str, Dict[str, any]]]:
         """
         Call the LLM with a prompt.
@@ -76,6 +101,12 @@ class LLMService:
             add_warning: Whether to append a truncation warning to the response.
                          Set to False for structured JSON calls so the warning
                          text does not corrupt the JSON output.
+            response_mime_type: Force the model's response format, e.g.
+                                "application/json" for strict JSON output.
+                                On Gemini 2.5 this substantially reduces
+                                thinking-token consumption on structured tasks
+                                because the model doesn't need to explore how
+                                to format the answer.
 
         Returns:
             Generated text response (or tuple with metadata if return_metadata=True)
@@ -99,6 +130,7 @@ class LLMService:
                     max_tokens=max_tokens,
                     return_metadata=return_metadata,
                     add_warning=add_warning,
+                    response_mime_type=response_mime_type,
                     attempt=attempt,
                     start_time=start_time,
                 )
@@ -140,6 +172,7 @@ class LLMService:
         max_tokens: Optional[int] = None,
         return_metadata: bool = False,
         add_warning: bool = True,
+        response_mime_type: Optional[str] = None,
         attempt: int = 0,
         start_time: float = 0,
     ) -> Union[str, Tuple[str, Dict[str, any]]]:
@@ -169,15 +202,23 @@ class LLMService:
             requested_max_tokens = max_tokens or self.max_tokens
             actual_max_tokens = min(requested_max_tokens, _GEMINI_MAX_OUTPUT_TOKENS)
             
-            config = GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=temperature or self.temperature,
-                max_output_tokens=actual_max_tokens,
-            )
-            
+            config_kwargs = {
+                "system_instruction": system_instruction,
+                "temperature": temperature or self.temperature,
+                "max_output_tokens": actual_max_tokens,
+            }
+            # When a structured mime type is requested (e.g. application/json),
+            # pass it through. This dramatically reduces thinking-token
+            # consumption on Gemini 2.5 for JSON tasks because the model is
+            # no longer exploring how to format the output.
+            if response_mime_type:
+                config_kwargs["response_mime_type"] = response_mime_type
+            config = GenerateContentConfig(**config_kwargs)
+
             logger.debug(
                 f"LLM call config: max_output_tokens={actual_max_tokens}, "
-                f"temperature={temperature or self.temperature}"
+                f"temperature={temperature or self.temperature}, "
+                f"response_mime_type={response_mime_type}"
             )
 
             # Call API
@@ -219,12 +260,26 @@ class LLMService:
             
             # Get token usage if available
             output_tokens = None
+            prompt_tokens = None
+            thoughts_tokens = None
             if hasattr(response, "usage_metadata"):
-                output_tokens = getattr(response.usage_metadata, "candidates_token_count", None)
-            
+                um = response.usage_metadata
+                output_tokens = getattr(um, "candidates_token_count", None)
+                prompt_tokens = getattr(um, "prompt_token_count", None)
+                thoughts_tokens = getattr(um, "thoughts_token_count", None)
+
+            # Compute estimated cost (treats None as 0 for missing fields)
+            call_cost_usd = _cost_usd(
+                self.model,
+                prompt_tokens or 0,
+                output_tokens or 0,
+                thoughts_tokens or 0,
+            )
+
             logger.info(
                 f"LLM call successful: {response_length} chars, "
-                f"output_tokens: {output_tokens}, "
+                f"tokens in={prompt_tokens} out={output_tokens} thoughts={thoughts_tokens}, "
+                f"cost=${call_cost_usd:.6f} ({self.model}), "
                 f"finish_reason: {finish_reason}, "
                 f"max_tokens: {actual_max_tokens}"
             )
@@ -376,14 +431,19 @@ class LLMService:
         for idx, chunk in enumerate(chunks, 1):
             source = chunk.source if hasattr(chunk, "source") else chunk.get("source", {})
             doc_name = source.get("document_name", "Unknown")
+            doc_id = source.get("document_id", "")
             section = source.get("section", "")
             node_id = source.get("node_id", "")
+            page_range = source.get("page_range", [])
+            first_page = page_range[0] if page_range else 1
             text = chunk.text if hasattr(chunk, "text") else chunk.get("text", "")
 
             context_parts.append(
                 f"[Section {idx}]\n"
                 f"Act: {doc_name}\n"
+                f"Document ID: {doc_id}\n"
                 f"Node: {node_id} — {section}\n"
+                f"Page: {first_page}\n"
                 f"Content: {text}\n"
             )
 

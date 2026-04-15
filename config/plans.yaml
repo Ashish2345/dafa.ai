@@ -1,0 +1,80 @@
+# ─────────────────────────────────────────────────────────────────────────
+# Mero Dafa — Plan Definitions
+# ─────────────────────────────────────────────────────────────────────────
+# Edit this file to change what each tier includes or limits.
+# After editing, restart the backend for changes to take effect.
+#
+# Notes:
+# - `id` is the stable key stored in the user document. Do NOT rename an `id`
+#   without migrating users in the DB.
+# - `-1` in any numeric limit means "unlimited".
+# - `price_npr: null` means "contact sales" (no monthly price shown).
+# - `default_plan` is assigned to newly registered users.
+# ─────────────────────────────────────────────────────────────────────────
+
+default_plan: starter
+
+plans:
+  - id: starter
+    name: Starter
+    description: Solo CAs and students exploring Mero Dafa
+    price_npr: 0
+    period: monthly
+    highlight: false
+    order: 1
+    limits:
+      searches_per_day: 10
+      pdf_downloads_per_day: 3
+      gazette_years: 2
+      chat_history_days: 7           # older conversations disappear from sidebar
+      max_starred_responses: 10
+      api_access: false
+    features:
+      - 10 questions per day
+      - Latest 2 years of Gazette
+      - Standard RAG chat
+      - 3 PDF downloads per day
+      - Email support
+
+  - id: pro
+    name: Pro
+    description: Audit firms and busy CAs
+    price_npr: 7999
+    period: monthly
+    highlight: true
+    order: 2
+    limits:
+      searches_per_day: -1         # unlimited
+      pdf_downloads_per_day: -1
+      gazette_years: -1            # full archive
+      chat_history_days: -1        # unlimited retention
+      max_starred_responses: 50
+      api_access: false
+    features:
+      - Unlimited questions
+      - Full archive (2015-2081)
+      - Priority table parsing
+      - Unlimited PDF downloads
+      - Team collaboration folders
+      - Priority email support
+
+  - id: enterprise
+    name: Enterprise
+    description: Banks, insurance, and multinationals
+    price_npr: null                # contact sales
+    period: custom
+    highlight: false
+    order: 3
+    limits:
+      searches_per_day: -1
+      pdf_downloads_per_day: -1
+      gazette_years: -1
+      chat_history_days: -1
+      max_starred_responses: -1
+      api_access: true
+    features:
+      - Everything in Pro
+      - Dedicated account manager
+      - On-premise / private cloud
+      - API access
+      - Custom legal logic

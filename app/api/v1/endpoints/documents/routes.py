@@ -5,6 +5,7 @@ Handles upload/ingest, listing, retrieval, and file serving.
 Merges old ingest.py, collections.py, files.py, and documents.py.
 """
 
+import json
 import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -12,14 +13,16 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
 from loguru import logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app.api.v1.forms import ParseFormData
 from app.config.request_mapping import RequestConfigBuilder
 from app.db.mongodb import get_database
 from app.db.repositories.document_repository import DocumentRepository
 from app.db.repositories.file_storage import FileStorageRepository
+from app.db.repositories.ocr_bbox_repository import OcrBboxRepository
 from app.db.repositories.page_index_repository import PageIndexRepository
+from app.models.schemas import PageIndexTreeUpload
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.services.ingestion.processing import DocumentProcessor, MetadataExtractor
 from app.services.parsers.factory import ParserFactory
@@ -39,6 +42,7 @@ async def _run_ingestion_background(
     document_id: str,
     filename: str,
     form_data: ParseFormData,
+    custom_tree: Optional[dict] = None,
 ) -> None:
     """Background task: runs the full ingestion pipeline and cleans up the temp file."""
     try:
@@ -63,6 +67,7 @@ async def _run_ingestion_background(
             metadata_extractor=MetadataExtractor(language=language),
             file_storage=FileStorageRepository(db),
             document_repo=doc_repo,
+            ocr_bbox_repo=OcrBboxRepository(db),
         )
 
         result = await pipeline.run(
@@ -72,6 +77,7 @@ async def _run_ingestion_background(
             strategy=strategy,
             language=language,
             on_progress=on_progress,
+            custom_tree=custom_tree,
         )
 
         if result.get("status") == "failed":
@@ -100,6 +106,14 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: Optional[UploadFile] = File(None),
+    page_index_file: Optional[UploadFile] = File(
+        None,
+        description=(
+            "Optional user-supplied page-index tree JSON. When provided, the "
+            "pipeline skips LLM tree generation and uses this tree instead. "
+            "Only valid with strategy='page_index'."
+        ),
+    ),
     form_data: ParseFormData = Depends(ParseFormData.as_form()),
     current_user: dict = Depends(get_current_user),
 ):
@@ -108,6 +122,16 @@ async def upload_document(
     Returns immediately with ``status: processing``.
     Poll ``GET /documents/{document_id}`` to track progress via the
     ``status`` and ``progress_step`` fields.
+
+    Optional ``page_index_file`` (JSON):
+        When supplied, the pipeline skips LLM tree generation and uses the
+        provided hierarchical tree. Schema is validated synchronously; a
+        malformed or structurally-invalid file returns 400 before ingestion
+        starts. Titles in each node are matched against the OCR'd markdown;
+        unmatched nodes are recorded in ``ingest_warnings`` on the document
+        record (see ``GET /documents/{document_id}``). Only valid with
+        ``strategy='page_index'`` (or the default); rejected with 400 when
+        combined with ``strategy='vector'``.
     """
     original_filename = None
     if file and file.filename:
@@ -117,6 +141,52 @@ async def upload_document(
         parsed_url = urlparse(form_data.file_url)
         if parsed_url.path:
             original_filename = Path(parsed_url.path).name
+
+    # ------------------------------------------------------------------
+    # Custom page-index tree: parse and validate synchronously.
+    # Fail fast with 400 before we start the slow OCR background task.
+    # ------------------------------------------------------------------
+    logger.info(
+        f"upload: page_index_file received? "
+        f"{page_index_file is not None} "
+        f"(filename={getattr(page_index_file, 'filename', None)!r})"
+    )
+    custom_tree: Optional[dict] = None
+    if page_index_file is not None and getattr(page_index_file, "filename", ""):
+        # Strategy compatibility — only page_index supports custom trees.
+        strategy_name = (getattr(form_data, "strategy", None) or "page_index").lower()
+        if strategy_name == "vector":
+            raise HTTPException(
+                status_code=400,
+                detail="page_index_file is only valid with strategy='page_index'.",
+            )
+
+        raw = await page_index_file.read()
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"page_index_file is not valid JSON: {exc.msg} "
+                    f"at line {exc.lineno} col {exc.colno}"
+                ),
+            ) from exc
+
+        try:
+            tree_model = PageIndexTreeUpload.model_validate(parsed)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "page_index_file failed schema validation",
+                    "errors": exc.errors(),
+                },
+            ) from exc
+
+        # Dump back to a plain dict (preserves extra fields like ``keywords``
+        # because PageIndexTreeUpload/PageIndexNodeUpload use extra='allow').
+        custom_tree = tree_model.model_dump()
 
     try:
         from app.services.download import FileHandler
@@ -144,6 +214,7 @@ async def upload_document(
             document_id,
             filename,
             form_data,
+            custom_tree,
         )
 
         logger.info(f"Ingestion queued: {document_id} ({filename})")
@@ -202,8 +273,41 @@ async def get_document_pdf(
     document_id: str,
     current_user: dict = Depends(get_current_user),
 ):
-    """Serve the original PDF from GridFS."""
+    """Serve the original PDF from GridFS. Enforces per-plan daily download quota."""
+    from fastapi import HTTPException
+    from app.config.plan_loader import plan_catalog
+    from app.db.repositories.usage_repository import UsageRepository
+    from app.db.repositories.user_repository import UserRepository
+
     db = await get_database()
+    user_id = current_user["sub"]
+
+    # ─── Plan quota enforcement ──────────────────────────────────────
+    user_doc = await UserRepository(db).get_by_id(user_id)
+    plan_id = (user_doc or {}).get("plan") or plan_catalog.default_plan_id
+    plan = plan_catalog.get(plan_id)
+
+    usage_repo = UsageRepository(db)
+    allowed, used, _ = await usage_repo.check_quota(
+        user_id, "pdf_download", plan.limits.pdf_downloads_per_day
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "plan_limit_reached",
+                "action": "pdf_download",
+                "plan_id": plan_id,
+                "plan_name": plan.name,
+                "limit": plan.limits.pdf_downloads_per_day,
+                "used": used,
+                "message": (
+                    f"You've used all {plan.limits.pdf_downloads_per_day} PDF downloads on your "
+                    f"{plan.name} plan today. Upgrade to continue downloading."
+                ),
+            },
+        )
+
     file_repo = FileStorageRepository(db)
     pdf_meta = await file_repo.get_pdf_by_document(document_id)
     if not pdf_meta:
@@ -213,10 +317,19 @@ async def get_document_pdf(
             message=f"PDF not found for document {document_id}",
         )
     pdf_bytes, _ = await file_repo.get_pdf(pdf_meta["file_id"])
+
+    # Count this download against the user's daily quota
+    await usage_repo.increment(user_id, "pdf_download")
+
+    original_name = pdf_meta.get("original_filename", "document.pdf")
+    # RFC 5987: use filename* for non-ASCII names, ASCII fallback for filename
+    from urllib.parse import quote
+    ascii_name = original_name.encode("ascii", "ignore").decode("ascii") or "document.pdf"
+    utf8_name = quote(original_name, safe="")
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'inline; filename="{pdf_meta.get("original_filename", "document.pdf")}"'},
+        headers={"Content-Disposition": f"inline; filename=\"{ascii_name}\"; filename*=UTF-8''{utf8_name}"},
     )
 
 
@@ -314,27 +427,8 @@ async def get_document_page_count(
     return {"total_pages": total}
 
 
-@router.get("/{document_id}/highlights", summary="Get highlight bounding boxes for tree nodes")
-async def get_document_highlights(
-    document_id: str,
-    node_ids: str = Query(..., description="Comma-separated node IDs"),
-    current_user=Depends(get_current_user),
-    page_index_repo: PageIndexRepository = Depends(get_page_index_repository),
-):
-    """Get highlight bounding boxes for specific tree nodes."""
-    try:
-        ids = [int(x.strip()) for x in node_ids.split(",") if x.strip()]
-    except ValueError:
-        raise HTTPException(status_code=400, detail="node_ids must be comma-separated integers")
-
-    if not ids:
-        raise HTTPException(status_code=400, detail="At least one node_id required")
-
-    result = await page_index_repo.get_node_highlights(document_id, ids)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Document tree not found")
-
-    return result
+# Old section-level highlights endpoint removed — replaced by
+# app/api/v1/endpoints/highlights.py which returns per-line word-level bboxes.
 
 
 @router.delete("/{document_id}", summary="Delete a document")

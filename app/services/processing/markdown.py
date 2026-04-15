@@ -68,6 +68,7 @@ class DocumentProcessor:
 
         # Single parse: build all output from _convert_to_markdown_with_bboxes
         full_markdown, page_bbox_map = self._convert_to_markdown_with_bboxes(parsed_result)
+        word_bboxes = self._extract_word_bboxes(parsed_result, full_markdown, page_bbox_map)
 
         pages = parsed_result.get("pages", [])
         tables = parsed_result.get("tables", [])
@@ -108,6 +109,7 @@ class DocumentProcessor:
             "fields": fields,
             "metadata": metadata,
             "page_bbox_map": page_bbox_map,
+            "word_bboxes": word_bboxes,
         }
 
     def _convert_to_markdown(self, parsed_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -244,6 +246,97 @@ class DocumentProcessor:
 
         full_markdown = PAGE_SEPARATOR.join(page_markdown_parts)
         return full_markdown, page_bbox_map
+
+    def _extract_word_bboxes(
+        self,
+        parsed_result: dict,
+        full_markdown: str,
+        page_bbox_map: list[dict],
+    ) -> list[dict]:
+        """Extract word-level bounding boxes with character offsets.
+
+        Uses the cleaned OCR DataFrames (which retain word-level x0/y0/x2/y2)
+        and maps each word to its approximate character offset in the full
+        markdown string using the page_bbox_map for page-level start_char.
+
+        Returns:
+            List of dicts, one per page:
+            [{"page": 1, "words": [{"text": ..., "x0": ..., "char_offset": ...}, ...]}, ...]
+        """
+        cleaned_ocr = parsed_result.get("cleaned_ocr", [])
+        pages_data = parsed_result.get("pages", [])
+        result = []
+
+        for page_idx, ocr_df in enumerate(cleaned_ocr):
+            if ocr_df.empty:
+                continue
+
+            page_number = pages_data[page_idx]["page_number"] if page_idx < len(pages_data) else page_idx + 1
+
+            # Find this page's start_char from page_bbox_map
+            page_start_char = 0
+            for entry in page_bbox_map:
+                if entry["page"] == page_number:
+                    page_start_char = entry["start_char"]
+                    break
+
+            # Find this page's end_char for extracting the page markdown slice
+            page_end_char = len(full_markdown)
+            for entry in page_bbox_map:
+                if entry["page"] == page_number:
+                    page_end_char = entry["end_char"]
+                    break
+            page_md = full_markdown[page_start_char:page_end_char]
+
+            # Build word list — find each word sequentially in the page markdown
+            # for accurate char_offsets instead of a running counter.
+            # Uses forward-only cursor but tries nearby matches for duplicate words.
+            words = []
+            search_cursor = 0  # position within page_md
+            page_md_lower = page_md.lower()
+            for _, row in ocr_df.iterrows():
+                text = str(row.get("Text", "")).strip()
+                if not text:
+                    continue
+
+                x0 = float(row["x0"])
+                y0 = float(row["y0"])
+                x2 = float(row["x2"])
+                y2 = float(row["y2"])
+
+                # Validate coordinates are normalized 0-1
+                if x2 > 1.5 or y2 > 1.5:
+                    # Likely pixel coords — skip (shouldn't happen with proper OCR)
+                    logger.warning(f"Word '{text}' has non-normalized coords x2={x2}, y2={y2}, skipping")
+                    continue
+
+                # Search forward from cursor for this word
+                pos = page_md.find(text, search_cursor)
+                if pos == -1:
+                    # Case-insensitive fallback
+                    pos = page_md_lower.find(text.lower(), search_cursor)
+                if pos >= 0:
+                    char_offset = page_start_char + pos
+                    search_cursor = pos + len(text)
+                else:
+                    # Word not found — estimate from cursor position
+                    char_offset = page_start_char + search_cursor
+
+                words.append({
+                    "text": text,
+                    "x0": x0,
+                    "y0": y0,
+                    "x2": x2,
+                    "y2": y2,
+                    "block": int(row.get("block", 0)),
+                    "line": int(row.get("line", 0)),
+                    "char_offset": char_offset,
+                })
+
+            if words:
+                result.append({"page": page_number, "words": words})
+
+        return result
 
     def _convert_page_to_markdown(
         self,

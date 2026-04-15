@@ -51,7 +51,13 @@ class DocumentRepository:
         await self.collection.update_one({"document_id": document_id}, {"$set": patch})
 
     async def save(
-        self, document_id: str, filename: str, metadata: dict[str, Any], strategy: str,
+        self,
+        document_id: str,
+        filename: str,
+        metadata: dict[str, Any],
+        strategy: str,
+        custom_tree_provided: bool = False,
+        ingest_warnings: dict | None = None,
     ) -> None:
         now = datetime.now(timezone.utc)
         await self.collection.update_one(
@@ -64,6 +70,8 @@ class DocumentRepository:
                     "strategy": strategy,
                     "status": "completed",
                     "progress_step": "Done",
+                    "custom_tree_provided": custom_tree_provided,
+                    "ingest_warnings": ingest_warnings,
                     "updated_at": now,
                 },
                 "$setOnInsert": {"created_at": now},

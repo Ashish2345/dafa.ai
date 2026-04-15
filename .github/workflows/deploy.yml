@@ -1,0 +1,48 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: false
+
+    steps:
+      - name: SSH & redeploy API
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_PORT }}
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            set -e
+
+            # Make `uv` available (installed under ~/.local/bin via install script).
+            export PATH="$HOME/.local/bin:$PATH"
+
+            cd /var/www/merodafa/dafa.ai
+
+            echo "▸ Pulling latest"
+            git fetch --prune origin
+            git reset --hard origin/main
+
+            echo "▸ Syncing Python deps via uv"
+            uv sync --frozen --no-dev
+
+            # Pre-warm byte-compile so the first request after restart is fast.
+            echo "▸ Byte-compiling app/"
+            uv run python -m compileall -q app || true
+
+            echo "▸ Restarting systemd unit"
+            sudo systemctl restart dafa-api
+            sudo systemctl --no-pager --full status dafa-api | head -20
+
+            echo "✓ Backend deployed"

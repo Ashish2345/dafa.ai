@@ -1,0 +1,165 @@
+"""
+Streaming query endpoint — SSE progress events + final answer.
+
+Breaks the query flow into granular steps so the frontend shows
+real-time progress as each phase completes.
+"""
+
+import asyncio
+import json
+from typing import Any, Dict, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
+from loguru import logger
+from pydantic import BaseModel, Field
+
+from app.config.plan_loader import plan_catalog
+from app.db.mongodb import get_database
+from app.db.repositories.usage_repository import UsageRepository
+from app.db.repositories.user_repository import UserRepository
+from app.services.llm import LLMService
+from app.services.retrieval.factory import RetrievalFactory
+from app.utils.auth import get_current_user
+
+router = APIRouter(prefix="/query", tags=["query"])
+
+
+class StreamQueryRequest(BaseModel):
+    query: str = Field(..., description="User query/question", min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
+    use_llm: bool = Field(default=True)
+    strategy: Optional[str] = Field(default=None)
+    collection_name: Optional[str] = Field(default=None)
+    filter_conditions: Optional[Dict[str, Any]] = Field(default=None)
+
+
+def _sse_event(event: str, data: dict) -> str:
+    """Format a Server-Sent Event."""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/stream", summary="Ask a question (streaming progress)")
+async def query_stream(
+    request: StreamQueryRequest,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Streaming query with real-time progress events via SSE."""
+    user_id = current_user["sub"]
+
+    # ─── Plan quota enforcement ──────────────────────────────────────
+    user_doc = await UserRepository(db).get_by_id(user_id)
+    plan_id = (user_doc or {}).get("plan") or plan_catalog.default_plan_id
+    plan = plan_catalog.get(plan_id)
+
+    usage_repo = UsageRepository(db)
+    allowed, used, remaining = await usage_repo.check_quota(
+        user_id, "search", plan.limits.searches_per_day
+    )
+
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "error": "plan_limit_reached",
+                "action": "search",
+                "plan_id": plan_id,
+                "plan_name": plan.name,
+                "limit": plan.limits.searches_per_day,
+                "used": used,
+                "message": (
+                    f"You've used all {plan.limits.searches_per_day} questions on your "
+                    f"{plan.name} plan today. Upgrade to continue asking."
+                ),
+            },
+        )
+
+    async def event_generator():
+        try:
+            # Step 1: Loading strategy and documents
+            yield _sse_event("status", {
+                "step": "loading",
+                "message": "Loading documents...",
+            })
+
+            strategy = await RetrievalFactory.get_strategy(request.strategy)
+
+            # Step 2: Navigating document tree (LLM call — the slow part)
+            yield _sse_event("status", {
+                "step": "navigating",
+                "message": "Navigating document tree...",
+            })
+
+            chunks = await strategy.retrieve(
+                query=request.query,
+                top_k=request.top_k,
+                filter_conditions=request.filter_conditions,
+                collection_name=request.collection_name,
+            )
+
+            if not chunks:
+                yield _sse_event("status", {
+                    "step": "extracting",
+                    "message": "No relevant sections found",
+                })
+            else:
+                # Collect document names for better status
+                doc_names = set()
+                for c in chunks:
+                    name = c.source.get("document_name", "")
+                    if name:
+                        doc_names.add(name)
+                doc_label = next(iter(doc_names), "document") if doc_names else "document"
+
+                yield _sse_event("status", {
+                    "step": "extracting",
+                    "message": f"Found {len(chunks)} sections in {doc_label}",
+                })
+
+            # Step 3: Synthesize answer (another LLM call)
+            answer = ""
+            if request.use_llm and chunks:
+                yield _sse_event("status", {
+                    "step": "synthesizing",
+                    "message": "Generating answer...",
+                })
+
+                llm = LLMService()
+                # Run synthesis in thread so SSE events can flush
+                answer = await asyncio.to_thread(llm.synthesize, request.query, chunks)
+
+            # Build response
+            sources = [chunk.source for chunk in chunks]
+            response_data = {
+                "query": request.query,
+                "answer": answer,
+                "chunks": [
+                    {"text": c.text, "source": c.source, "score": c.score, "metadata": c.metadata}
+                    for c in chunks
+                ],
+                "sources": sources,
+                "metadata": {
+                    "strategy": request.strategy or "default",
+                    "chunks_retrieved": len(chunks),
+                },
+            }
+
+            # Count against quota
+            await usage_repo.increment(user_id, "search")
+
+            yield _sse_event("done", response_data)
+
+        except Exception as e:
+            logger.error(f"Streaming query failed: {e}")
+            yield _sse_event("error", {"message": str(e)})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

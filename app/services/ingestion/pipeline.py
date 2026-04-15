@@ -23,12 +23,14 @@ class IngestionPipeline:
         metadata_extractor=None,
         file_storage=None,
         document_repo=None,
+        ocr_bbox_repo=None,
     ):
         self.parser_factory = parser_factory
         self.processor = processor
         self.metadata_extractor = metadata_extractor
         self.file_storage = file_storage
         self.document_repo = document_repo
+        self.ocr_bbox_repo = ocr_bbox_repo
 
     async def run(
         self,
@@ -38,6 +40,7 @@ class IngestionPipeline:
         strategy: RetrievalStrategy,
         language: str = "en",
         on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
+        custom_tree: dict | None = None,
     ) -> dict[str, Any]:
         """Run the full ingestion pipeline.
 
@@ -89,6 +92,17 @@ class IngestionPipeline:
             )
             markdown = markdown_result.get("markdown", "")
             page_bbox_map = markdown_result.get("page_bbox_map", [])
+            # Persist word-level OCR bounding boxes (if repo available)
+            word_bboxes = markdown_result.get("word_bboxes", [])
+            if self.ocr_bbox_repo and word_bboxes:
+                await _step("Saving word-level bounding boxes...")
+                for page_entry in word_bboxes:
+                    await self.ocr_bbox_repo.save_page(
+                        document_id=document_id,
+                        page=page_entry["page"],
+                        words=page_entry["words"],
+                    )
+                logger.info(f"[{document_id[:8]}] Saved word bboxes for {len(word_bboxes)} pages")
             logger.info(f"[{document_id[:8]}] page_bbox_map has {len(page_bbox_map)} entries"
                         + (f", first: page={page_bbox_map[0]['page']}, bbox={page_bbox_map[0]['bbox']}" if page_bbox_map else ""))
 
@@ -140,15 +154,27 @@ class IngestionPipeline:
                     logger.warning(f"Failed to save PDF/images: {e}")
 
             # Step 5: Strategy-specific storage (passes on_progress so chunked
-            # strategies can report per-chunk status)
-            await strategy.ingest(
+            # strategies can report per-chunk status).
+            # Only PageIndexStrategy accepts custom_tree; VectorStrategy does not.
+            # Omit the kwarg when None so we stay compatible with strategies
+            # that don't expose it.
+            ingest_kwargs: dict[str, Any] = {
+                "on_progress": on_progress,
+                "page_bbox_map": page_bbox_map,
+                "image_dimensions": image_dimensions,
+            }
+            if custom_tree is not None:
+                ingest_kwargs["custom_tree"] = custom_tree
+
+            strategy_result = await strategy.ingest(
                 document_id,
                 markdown,
                 metadata,
-                on_progress=on_progress,
-                page_bbox_map=page_bbox_map,
-                image_dimensions=image_dimensions,
+                **ingest_kwargs,
             )
+            # Back-compat: VectorStrategy.ingest() currently returns None.
+            if not isinstance(strategy_result, dict):
+                strategy_result = {}
 
             # Step 6: Record in document repository
             await _step("Saving document record...")
@@ -158,6 +184,8 @@ class IngestionPipeline:
                     filename=filename,
                     metadata=metadata,
                     strategy=strategy.__class__.__name__,
+                    custom_tree_provided=bool(strategy_result.get("custom_tree_provided", False)),
+                    ingest_warnings=strategy_result.get("ingest_warnings"),
                 )
 
             logger.info(f"Ingestion complete: {document_id}")
