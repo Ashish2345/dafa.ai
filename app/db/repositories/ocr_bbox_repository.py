@@ -116,6 +116,25 @@ class OcrBboxRepository:
         )
         return doc.get("words", []) if doc else []
 
+    async def get_all_words(
+        self,
+        document_id: str,
+    ) -> dict[int, list[dict]]:
+        """Return every word on every page, keyed by page number.
+
+        Used by the frontend to populate the text-selection overlay in a single
+        round trip instead of N per-page fetches.
+        """
+        cursor = self.collection.find(
+            {"document_id": document_id},
+            {"_id": 0, "page": 1, "words": 1},
+        ).sort("page", 1)
+
+        out: dict[int, list[dict]] = {}
+        async for doc in cursor:
+            out[doc["page"]] = doc.get("words", [])
+        return out
+
     async def delete_document(self, document_id: str) -> None:
         """Delete all page bbox data for a document."""
         await self.collection.delete_many({"document_id": document_id})

@@ -210,3 +210,47 @@ async def get_page_words(
         "words": words,
         "image_dimensions": tree_doc.get("image_dimensions"),
     }
+
+
+@router.get("/{document_id}/words")
+async def get_all_words(
+    document_id: str,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Return word-level OCR bboxes for ALL pages in a single request.
+
+    Preferred over ``/page/{page}/words`` for documents with many pages —
+    saves N-1 round trips. Gzipped payload is typically 1-2 MB even for
+    200+ page documents.
+
+    Response shape:
+        {
+          "image_dimensions": {"width": 612, "height": 792},
+          "words_by_page": {
+            "1": [{"text": "...", "x0": ..., "y0": ..., "x2": ..., "y2": ..., ...}, ...],
+            "2": [...],
+            ...
+          }
+        }
+
+    Coordinates are normalized 0-1 relative to the page image.
+    """
+    tree_doc = await db.page_index_trees.find_one(
+        {"document_id": document_id},
+        {"image_dimensions": 1, "_id": 0},
+    )
+    if not tree_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    bbox_repo = OcrBboxRepository(db)
+    words_by_page = await bbox_repo.get_all_words(document_id)
+
+    # JSON keys must be strings; MongoDB gave us int keys
+    return {
+        "image_dimensions": tree_doc.get("image_dimensions"),
+        "words_by_page": {str(k): v for k, v in words_by_page.items()},
+    }
