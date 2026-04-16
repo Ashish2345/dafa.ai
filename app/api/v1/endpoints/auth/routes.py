@@ -280,7 +280,10 @@ _GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 @router.get("/google/login", summary="Get Google OAuth consent URL")
-async def google_login(redirect_uri: str = Query(..., description="Frontend callback URL")):
+async def google_login(
+    redirect_uri: str = Query(..., description="Frontend callback URL"),
+    state: str = Query("", description="CSRF state token from frontend"),
+):
     """
     Returns the Google OAuth consent URL.
     The frontend should redirect the user to this URL.
@@ -288,14 +291,18 @@ async def google_login(redirect_uri: str = Query(..., description="Frontend call
     if not app_settings.google_client_id:
         raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Google OAuth not configured")
 
-    return {"url": str(httpx.URL("https://accounts.google.com/o/oauth2/v2/auth", params={
+    params = {
         "client_id": app_settings.google_client_id,
         "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
         "prompt": "select_account",
-    }))}
+    }
+    if state:
+        params["state"] = state
+
+    return {"url": str(httpx.URL("https://accounts.google.com/o/oauth2/v2/auth", params=params))}
 
 
 @router.post("/google/callback", summary="Exchange Google auth code for tokens")
