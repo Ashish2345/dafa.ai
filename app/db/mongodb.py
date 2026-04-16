@@ -214,6 +214,11 @@ class MongoDB:
             await feedback.create_index([("user_id", 1), ("created_at", -1)])
             await feedback.create_index([("status", 1), ("created_at", -1)])
 
+            # Verification codes — one active code per (email, purpose)
+            verification_codes = self.database.verification_codes
+            await verification_codes.create_index([("email", 1), ("purpose", 1)], unique=True)
+            await verification_codes.create_index("expires_at", expireAfterSeconds=0)  # TTL auto-cleanup
+
             # Daily usage counters — one doc per (user, day)
             usage_counters = self.database.usage_counters
             await usage_counters.create_index([("user_id", 1), ("date", 1)], unique=True)

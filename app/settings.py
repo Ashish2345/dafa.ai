@@ -108,6 +108,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(default=30, description="Access token expiry in minutes", ge=1)
     refresh_token_expire_days: int = Field(default=7, description="Refresh token expiry in days", ge=1)
 
+    # Google OAuth
+    google_client_id: str = Field(default="", description="Google OAuth Client ID")
+    google_client_secret: str = Field(default="", description="Google OAuth Client Secret")
+
+    # Email (Zoho SMTP)
+    smtp_host: str = Field(default="smtp.zoho.com", description="SMTP server host")
+    smtp_port: int = Field(default=587, description="SMTP server port (587 for TLS)")
+    smtp_username: str = Field(default="", description="SMTP login email (e.g. auth@merodafa.com)")
+    smtp_password: str = Field(default="", description="SMTP app password")
+    smtp_from_email: str = Field(default="auth@merodafa.com", description="From email address")
+    smtp_from_name: str = Field(default="MeroDafa", description="From display name")
+    verification_code_expire_minutes: int = Field(default=10, description="OTP code expiry in minutes")
+
     # Logging
     log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 
