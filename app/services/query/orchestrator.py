@@ -4,6 +4,7 @@ Query orchestrator — retrieves chunks via strategy, synthesizes via LLM.
 Replaces the 647-line RAGOrchestrator with ~60 lines.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -12,6 +13,17 @@ from loguru import logger
 from app.services.llm import LLMService
 from app.services.retrieval.base import RetrievedChunk
 from app.services.retrieval.factory import RetrievalFactory
+
+_DEVANAGARI = re.compile(r'[\u0900-\u097F]')
+
+
+def _detect_language(chunks: list) -> str:
+    """Infer document language from chunk text — Devanagari content → 'ne'."""
+    for c in chunks[:3]:
+        text = c.text if hasattr(c, 'text') else c.get('text', '')
+        if _DEVANAGARI.search(text):
+            return 'ne'
+    return 'en'
 
 
 @dataclass
@@ -53,7 +65,8 @@ class QueryOrchestrator:
 
         answer = ""
         if use_llm and chunks:
-            answer = self.llm.synthesize(user_query, chunks)
+            doc_language = _detect_language(chunks)
+            answer = self.llm.synthesize(user_query, chunks, doc_language)
 
         sources = [chunk.source for chunk in chunks]
 

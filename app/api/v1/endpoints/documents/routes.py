@@ -52,11 +52,28 @@ async def _run_ingestion_background(
         async def on_progress(step: str) -> None:
             await doc_repo.update_status(document_id, "processing", step=step)
 
-        language = getattr(form_data, "language", "en")
+        # Resolve language. Precedence: uploaded tree JSON > form > default.
+        # The tree JSON is hand-curated per-document, so it's a stronger signal
+        # than a form field (which might be defaulted by the client).
+        tree_lang = None
+        if custom_tree is not None:
+            raw = custom_tree.get("language")
+            if isinstance(raw, str):
+                tree_lang = raw.strip().lower() or None
+        form_lang = (getattr(form_data, "language", "") or "").strip().lower() or None
+        language = tree_lang or form_lang or "en"
+        logger.info(
+            f"[{document_id[:8]}] language resolved: "
+            f"tree={tree_lang!r} form={form_lang!r} → used={language!r}"
+        )
+
         strategy_name = getattr(form_data, "strategy", None)
         strategy = await RetrievalFactory.get_strategy(strategy_name)
 
         form_dict = form_data.model_dump()
+        # Keep form_dict.language in sync so RequestConfigBuilder sees the
+        # resolved value (not the raw form default).
+        form_dict["language"] = language
         if language == "ne" and not form_data.ocr_languages:
             form_dict["ocr_languages"] = ["ne"]
         request_config = RequestConfigBuilder.from_form_data(form_dict)

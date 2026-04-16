@@ -38,7 +38,7 @@ class ParseFormData(BaseModel):
                           "Controls OCR language hints, metadata pattern matching, and section detection.")
     category: Optional[str] = Field(
         None,
-        description="Library category: acts-rules | finance-acts | nrb | ird | gazette",
+        description="Library category: acts-rules | finance-acts | nrb | ird | gazette | najirs",
     )
 
     # OCR params

@@ -7,6 +7,7 @@ real-time progress as each phase completes.
 
 import asyncio
 import json
+import re
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,6 +33,22 @@ class StreamQueryRequest(BaseModel):
     strategy: Optional[str] = Field(default=None)
     collection_name: Optional[str] = Field(default=None)
     filter_conditions: Optional[Dict[str, Any]] = Field(default=None)
+    response_language: Optional[str] = Field(
+        default=None,
+        description="Response language: 'en' or 'ne'. When omitted, auto-detected from document content.",
+    )
+
+
+_DEVANAGARI = re.compile(r'[\u0900-\u097F]')
+
+
+def _detect_language(chunks: list) -> str:
+    """Infer document language from chunk text — Devanagari content → 'ne'."""
+    for c in chunks[:3]:
+        text = c.text if hasattr(c, 'text') else c.get('text', '')
+        if _DEVANAGARI.search(text):
+            return 'ne'
+    return 'en'
 
 
 def _sse_event(event: str, data: dict) -> str:
@@ -126,8 +143,12 @@ async def query_stream(
                 })
 
                 llm = LLMService()
+                # User picks response language; fall back to auto-detect from content
+                language = request.response_language or _detect_language(chunks)
                 # Run synthesis in thread so SSE events can flush
-                answer = await asyncio.to_thread(llm.synthesize, request.query, chunks)
+                answer = await asyncio.to_thread(
+                    llm.synthesize, request.query, chunks, language,
+                )
 
             # Build response
             sources = [chunk.source for chunk in chunks]
