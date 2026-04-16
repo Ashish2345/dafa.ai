@@ -45,6 +45,7 @@ class UserRepository:
             "full_name": full_name,
             "role": role,
             "is_active": True,
+            "is_verified": False,
             "plan": plan_catalog.default_plan_id,
             "created_at": now,
             "updated_at": now,
@@ -71,6 +72,22 @@ class UserRepository:
         """
         doc = await self.collection.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
         return doc
+
+    async def set_verified(self, email: str) -> bool:
+        """Mark a user as email-verified. Returns True if updated."""
+        result = await self.collection.update_one(
+            {"email": email},
+            {"$set": {"is_verified": True, "updated_at": datetime.now(timezone.utc)}},
+        )
+        return result.modified_count > 0
+
+    async def update_password(self, email: str, hashed_password: str) -> bool:
+        """Update a user's password. Returns True if updated."""
+        result = await self.collection.update_one(
+            {"email": email},
+            {"$set": {"hashed_password": hashed_password, "updated_at": datetime.now(timezone.utc)}},
+        )
+        return result.modified_count > 0
 
     @staticmethod
     def _to_public(user_doc: dict) -> dict:
