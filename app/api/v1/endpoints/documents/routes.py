@@ -285,6 +285,33 @@ async def get_document(
     return doc
 
 
+class _DefaultQuestionsBody(BaseModel):
+    questions: list[str] = Field(..., min_length=1, max_length=5, description="1-5 starter questions for this act")
+
+
+@router.patch("/{document_id}/default-questions", summary="Set default starter questions for an act")
+async def set_default_questions(
+    document_id: str,
+    body: _DefaultQuestionsBody,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Set per-act starter questions shown in the empty chat state."""
+    repo = DocumentRepository(db)
+    doc = await repo.get(document_id)
+    if not doc:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"Document {document_id} not found",
+        )
+    await repo.collection.update_one(
+        {"document_id": document_id},
+        {"$set": {"default_questions": body.questions}},
+    )
+    return {"status": "ok", "default_questions": body.questions}
+
+
 @router.get("/{document_id}/pdf", summary="Download document PDF")
 async def get_document_pdf(
     document_id: str,
