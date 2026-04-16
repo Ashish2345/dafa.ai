@@ -94,18 +94,18 @@ async def query_stream(
 
     async def event_generator():
         try:
-            # Step 1: Loading strategy and documents
+            # Step 1: Opening the document
             yield _sse_event("status", {
                 "step": "loading",
-                "message": "Loading documents...",
+                "message": "Opening the document…",
             })
 
             strategy = await RetrievalFactory.get_strategy(request.strategy)
 
-            # Step 2: Navigating document tree (LLM call — the slow part)
+            # Step 2: Searching for relevant sections
             yield _sse_event("status", {
                 "step": "navigating",
-                "message": "Navigating document tree...",
+                "message": "Searching for relevant sections…",
             })
 
             chunks = await strategy.retrieve(
@@ -131,15 +131,15 @@ async def query_stream(
 
                 yield _sse_event("status", {
                     "step": "extracting",
-                    "message": f"Found {len(chunks)} sections in {doc_label}",
+                    "message": f"Reading {len(chunks)} sections from {doc_label}…",
                 })
 
-            # Step 3: Synthesize answer (another LLM call)
+            # Step 3: Synthesize answer
             answer = ""
             if request.use_llm and chunks:
                 yield _sse_event("status", {
                     "step": "synthesizing",
-                    "message": "Generating answer...",
+                    "message": "Writing your answer…",
                 })
 
                 llm = LLMService()
@@ -149,6 +149,36 @@ async def query_stream(
                 answer = await asyncio.to_thread(
                     llm.synthesize, request.query, chunks, language,
                 )
+
+            # Generate contextual follow-up suggestions (best-effort, non-blocking)
+            follow_ups: list[str] = []
+            if answer and chunks:
+                try:
+                    fu_llm = LLMService(
+                        model="gemini-2.0-flash",
+                        temperature=0.4,
+                        max_tokens=256,
+                    )
+                    fu_prompt = (
+                        "You are a Nepali legal research assistant. "
+                        "Given this Q&A, suggest exactly 3 short follow-up questions "
+                        "a finance professional would naturally ask next.\n\n"
+                        f"Question: {request.query}\n"
+                        f"Answer (excerpt): {answer[:600]}\n\n"
+                        "Return a JSON array of 3 strings, each under 60 characters. "
+                        "No markdown, no explanation — just the JSON array."
+                    )
+                    raw = await asyncio.to_thread(
+                        fu_llm.call,
+                        fu_prompt,
+                        add_warning=False,
+                        response_mime_type="application/json",
+                    )
+                    parsed = json.loads(raw if isinstance(raw, str) else raw[0])
+                    if isinstance(parsed, list):
+                        follow_ups = [s for s in parsed if isinstance(s, str)][:3]
+                except Exception as e:
+                    logger.debug(f"Follow-up generation skipped: {e}")
 
             # Build response
             sources = [chunk.source for chunk in chunks]
@@ -160,6 +190,7 @@ async def query_stream(
                     for c in chunks
                 ],
                 "sources": sources,
+                "follow_ups": follow_ups,
                 "metadata": {
                     "strategy": request.strategy or "default",
                     "chunks_retrieved": len(chunks),
