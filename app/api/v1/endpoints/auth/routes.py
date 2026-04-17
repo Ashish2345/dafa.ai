@@ -12,6 +12,7 @@ from app.db.repositories.user_repository import UserRepository
 from app.db.repositories.verification_repository import VerificationRepository
 from app.settings import settings as app_settings
 from app.models.user import (
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     RefreshRequest,
     ResendVerificationRequest,
@@ -220,6 +221,29 @@ async def reset_password(body: ResetPasswordRequest, db=Depends(get_database)):
 
     logger.info(f"Password reset: {body.email}")
     return {"status": "password_updated"}
+
+
+# ── Change password (authenticated) ─────────────────────────────────────────
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """Change password for the authenticated user. Requires current password."""
+    repo = UserRepository(db)
+    user = await repo.get_by_email(current_user["email"])
+
+    if not user or not verify_password(body.current_password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    await repo.update_password(current_user["email"], hash_password(body.new_password))
+    logger.info(f"Password changed: {current_user['email']}")
+    return {"status": "password_changed"}
 
 
 # ── Token refresh ───────────────────────────────────────────────────────────
