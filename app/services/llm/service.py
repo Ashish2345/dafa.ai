@@ -292,10 +292,13 @@ class LLMService:
                 is_truncated=is_truncated,
             )
             
-            # Add token usage to metadata
+            # Add token usage and cost to metadata
             response_metadata.update({
+                "input_tokens": prompt_tokens,
                 "output_tokens": output_tokens,
+                "thinking_tokens": thoughts_tokens,
                 "max_tokens": actual_max_tokens,
+                "cost_usd": call_cost_usd,
                 "processing_time": time.time() - start_time if start_time else None,
             })
             
@@ -460,11 +463,14 @@ class LLMService:
             query=query,
         )
 
-        result = self.call(
+        result, metadata = self.call(
             prompt=user_prompt,
             system_instruction=system_prompt,
             temperature=0.2,
             max_tokens=8192,
+            return_metadata=True,
         )
 
-        return result if isinstance(result, str) else result[0]
+        # Attach cost info for caller to record
+        text = result if isinstance(result, str) else result
+        return text, metadata
