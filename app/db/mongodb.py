@@ -214,6 +214,12 @@ class MongoDB:
             await feedback.create_index([("user_id", 1), ("created_at", -1)])
             await feedback.create_index([("status", 1), ("created_at", -1)])
 
+            # LLM usage tracking — per-call cost and token logging
+            llm_usage = self.database.llm_usage
+            await llm_usage.create_index([("user_id", 1), ("timestamp", -1)])
+            await llm_usage.create_index([("timestamp", -1)])
+            await llm_usage.create_index("model")
+
             # Verification codes — one active code per (email, purpose)
             verification_codes = self.database.verification_codes
             await verification_codes.create_index([("email", 1), ("purpose", 1)], unique=True)

@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.config.plan_loader import plan_catalog
 from app.db.mongodb import get_database
+from app.db.repositories.llm_usage_repository import LlmUsageRepository
 from app.db.repositories.usage_repository import UsageRepository
 from app.db.repositories.user_repository import UserRepository
 from app.services.llm import LLMService
@@ -136,6 +137,7 @@ async def query_stream(
 
             # Step 3: Synthesize answer
             answer = ""
+            synthesis_meta = {}
             if request.use_llm and chunks:
                 yield _sse_event("status", {
                     "step": "synthesizing",
@@ -146,8 +148,24 @@ async def query_stream(
                 # User picks response language; fall back to auto-detect from content
                 language = request.response_language or _detect_language(chunks)
                 # Run synthesis in thread so SSE events can flush
-                answer = await asyncio.to_thread(
+                answer, synthesis_meta = await asyncio.to_thread(
                     llm.synthesize, request.query, chunks, language,
+                )
+
+            # Track LLM cost for the synthesis call
+            llm_repo = LlmUsageRepository(db)
+            if synthesis_meta:
+                await llm_repo.record(
+                    user_id=user_id,
+                    model=llm.model if request.use_llm else "",
+                    purpose="answer_synthesis",
+                    input_tokens=synthesis_meta.get("input_tokens") or 0,
+                    output_tokens=synthesis_meta.get("output_tokens") or 0,
+                    thinking_tokens=synthesis_meta.get("thinking_tokens") or 0,
+                    cost_usd=synthesis_meta.get("cost_usd") or 0.0,
+                    processing_time_s=synthesis_meta.get("processing_time") or 0.0,
+                    collection_name=request.collection_name,
+                    query_preview=request.query[:200],
                 )
 
             # Generate contextual follow-up suggestions (best-effort, non-blocking)
@@ -168,15 +186,28 @@ async def query_stream(
                         "Return a JSON array of 3 strings, each under 60 characters. "
                         "No markdown, no explanation — just the JSON array."
                     )
-                    raw = await asyncio.to_thread(
+                    raw, fu_meta = await asyncio.to_thread(
                         fu_llm.call,
                         fu_prompt,
                         add_warning=False,
                         response_mime_type="application/json",
+                        return_metadata=True,
                     )
                     parsed = json.loads(raw if isinstance(raw, str) else raw[0])
                     if isinstance(parsed, list):
                         follow_ups = [s for s in parsed if isinstance(s, str)][:3]
+                    # Track follow-up generation cost
+                    await llm_repo.record(
+                        user_id=user_id,
+                        model="gemini-2.0-flash",
+                        purpose="follow_up_generation",
+                        input_tokens=fu_meta.get("input_tokens") or 0,
+                        output_tokens=fu_meta.get("output_tokens") or 0,
+                        cost_usd=fu_meta.get("cost_usd") or 0.0,
+                        processing_time_s=fu_meta.get("processing_time") or 0.0,
+                        collection_name=request.collection_name,
+                        query_preview=request.query[:200],
+                    )
                 except Exception as e:
                     logger.debug(f"Follow-up generation skipped: {e}")
 
