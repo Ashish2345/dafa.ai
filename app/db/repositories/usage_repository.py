@@ -40,7 +40,7 @@ class UsageRepository:
         )
         return (doc or {}).get("counts", {})
 
-    async def increment(self, user_id: str, action: str) -> int:
+    async def increment(self, user_id: str, action: str, amount: int = 1) -> int:
         """
         Atomically increment `counts.<action>` for today. Upserts the daily doc.
         Returns the NEW count for this action today.
@@ -52,7 +52,7 @@ class UsageRepository:
         result = await self.collection.find_one_and_update(
             {"user_id": user_id, "date": today},
             {
-                "$inc": {field: 1},
+                "$inc": {field: amount},
                 "$set": {"updated_at": now},
                 "$setOnInsert": {
                     "user_id": user_id,
@@ -63,9 +63,26 @@ class UsageRepository:
             upsert=True,
             return_document=True,
         )
-        new_count = (result or {}).get("counts", {}).get(action, 1)
-        logger.debug(f"Usage {user_id} {today} {action} → {new_count}")
+        new_count = (result or {}).get("counts", {}).get(action, amount)
+        logger.debug(f"Usage {user_id} {today} {action} +{amount} → {new_count}")
         return new_count
+
+    async def increment_float(self, user_id: str, action: str, amount: float = 0.0) -> None:
+        """Atomically increment a float counter (e.g. llm_cost_usd) for today."""
+        if amount <= 0:
+            return
+        today = _today_utc()
+        now = datetime.now(timezone.utc)
+        field = f"counts.{action}"
+        await self.collection.update_one(
+            {"user_id": user_id, "date": today},
+            {
+                "$inc": {field: round(amount, 8)},
+                "$set": {"updated_at": now},
+                "$setOnInsert": {"user_id": user_id, "date": today, "created_at": now},
+            },
+            upsert=True,
+        )
 
     async def check_quota(
         self,
