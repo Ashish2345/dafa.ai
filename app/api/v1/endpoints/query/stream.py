@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 
 from app.config.plan_loader import plan_catalog
 from app.db.mongodb import get_database
-from app.db.repositories.llm_usage_repository import LlmUsageRepository
 from app.db.repositories.usage_repository import UsageRepository
 from app.db.repositories.user_repository import UserRepository
 from app.services.llm import LLMService
@@ -25,6 +24,11 @@ from app.services.retrieval.factory import RetrievalFactory
 from app.utils.auth import get_current_user
 
 router = APIRouter(prefix="/query", tags=["query"])
+
+
+class _ConversationMessage(BaseModel):
+    role: str
+    content: str
 
 
 class StreamQueryRequest(BaseModel):
@@ -37,6 +41,10 @@ class StreamQueryRequest(BaseModel):
     response_language: Optional[str] = Field(
         default=None,
         description="Response language: 'en' or 'ne'. When omitted, auto-detected from document content.",
+    )
+    conversation_history: Optional[list[_ConversationMessage]] = Field(
+        default=None,
+        description="Last few messages for follow-up context.",
     )
 
 
@@ -147,26 +155,28 @@ async def query_stream(
                 llm = LLMService()
                 # User picks response language; fall back to auto-detect from content
                 language = request.response_language or _detect_language(chunks)
+
+                # Prepend conversation context for follow-up questions
+                query_for_llm = request.query
+                if request.conversation_history:
+                    ctx_lines = []
+                    for msg in request.conversation_history:
+                        label = "User" if msg.role == "user" else "Assistant"
+                        ctx_lines.append(f"[{label}: {msg.content}]")
+                    query_for_llm = "\n".join(ctx_lines) + f"\n\nFollow-up question: {request.query}"
+
                 # Run synthesis in thread so SSE events can flush
                 answer, synthesis_meta = await asyncio.to_thread(
-                    llm.synthesize, request.query, chunks, language,
+                    llm.synthesize, query_for_llm, chunks, language,
                 )
 
-            # Track LLM cost for the synthesis call
-            llm_repo = LlmUsageRepository(db)
-            if synthesis_meta:
-                await llm_repo.record(
-                    user_id=user_id,
-                    model=llm.model if request.use_llm else "",
-                    purpose="answer_synthesis",
-                    input_tokens=synthesis_meta.get("input_tokens") or 0,
-                    output_tokens=synthesis_meta.get("output_tokens") or 0,
-                    thinking_tokens=synthesis_meta.get("thinking_tokens") or 0,
-                    cost_usd=synthesis_meta.get("cost_usd") or 0.0,
-                    processing_time_s=synthesis_meta.get("processing_time") or 0.0,
-                    collection_name=request.collection_name,
-                    query_preview=request.query[:200],
-                )
+            # Track total LLM cost on the daily usage counter (no per-call records)
+            total_cost = (synthesis_meta.get("cost_usd") or 0.0) if synthesis_meta else 0.0
+            total_tokens = (
+                (synthesis_meta.get("input_tokens") or 0)
+                + (synthesis_meta.get("output_tokens") or 0)
+                + (synthesis_meta.get("thinking_tokens") or 0)
+            ) if synthesis_meta else 0
 
             # Generate contextual follow-up suggestions (best-effort, non-blocking)
             follow_ups: list[str] = []
@@ -196,20 +206,15 @@ async def query_stream(
                     parsed = json.loads(raw if isinstance(raw, str) else raw[0])
                     if isinstance(parsed, list):
                         follow_ups = [s for s in parsed if isinstance(s, str)][:3]
-                    # Track follow-up generation cost
-                    await llm_repo.record(
-                        user_id=user_id,
-                        model="gemini-2.0-flash",
-                        purpose="follow_up_generation",
-                        input_tokens=fu_meta.get("input_tokens") or 0,
-                        output_tokens=fu_meta.get("output_tokens") or 0,
-                        cost_usd=fu_meta.get("cost_usd") or 0.0,
-                        processing_time_s=fu_meta.get("processing_time") or 0.0,
-                        collection_name=request.collection_name,
-                        query_preview=request.query[:200],
-                    )
+                    total_cost += fu_meta.get("cost_usd") or 0.0
+                    total_tokens += (fu_meta.get("input_tokens") or 0) + (fu_meta.get("output_tokens") or 0)
                 except Exception as e:
                     logger.debug(f"Follow-up generation skipped: {e}")
+
+            # Increment daily LLM cost + tokens on the existing usage counter
+            if total_cost > 0 or total_tokens > 0:
+                await usage_repo.increment_float(user_id, "llm_cost_usd", total_cost)
+                await usage_repo.increment(user_id, "llm_tokens", amount=total_tokens)
 
             # Build response
             sources = [chunk.source for chunk in chunks]
