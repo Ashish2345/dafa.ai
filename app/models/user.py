@@ -74,3 +74,10 @@ class ResetPasswordRequest(BaseModel):
     email: EmailStr = Field(..., description="Email address of the account")
     code: str = Field(..., min_length=6, max_length=6, description="6-digit reset code")
     new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request body for authenticated password change."""
+
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., min_length=8, description="New password (minimum 8 characters)")

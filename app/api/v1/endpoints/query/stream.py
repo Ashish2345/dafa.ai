@@ -164,7 +164,6 @@ async def query_stream(
                         label = "User" if msg.role == "user" else "Assistant"
                         ctx_lines.append(f"[{label}: {msg.content}]")
                     query_for_llm = "\n".join(ctx_lines) + f"\n\nFollow-up question: {request.query}"
-
                 # Run synthesis in thread so SSE events can flush
                 answer, synthesis_meta = await asyncio.to_thread(
                     llm.synthesize, query_for_llm, chunks, language,
