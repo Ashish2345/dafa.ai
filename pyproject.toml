@@ -43,7 +43,7 @@ dependencies = [
     # Re-ranking
     "sentence-transformers>=2.2.0,<3.0.0",
     # LLM
-    "google-genai>=0.2.0,<1.0.0", # Google Generative AI SDK for Gemini
+    "google-genai[aiohttp]>=1.70.0", # Gemini SDK — aiohttp extra enables native async client for 5–10× streaming throughput
     # Auth
     "python-jose[cryptography]>=3.3.0,<4.0.0",
     "bcrypt>=4.0.0",

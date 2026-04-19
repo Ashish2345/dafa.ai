@@ -23,7 +23,7 @@ class SectionRetriever:
     def __init__(self, llm_service: LLMService | None = None):
         self.llm = llm_service or LLMService()
 
-    def retrieve(
+    async def a_retrieve(
         self,
         query: str,
         tree: dict,
@@ -31,12 +31,13 @@ class SectionRetriever:
         language: str = "en",
         top_k: int = 5,
     ) -> list[dict[str, Any]]:
+        """Async variant — uses LLMService.a_call (native aiohttp) to avoid
+        the google-genai sync-in-a-thread wrapper. Same return shape as
+        :meth:`retrieve`. Navigator usage (tokens + cost) is stashed on
+        ``self.last_nav_usage`` so the orchestrator can bill it to the user.
         """
-        Navigate tree and retrieve relevant section text.
+        self.last_nav_usage: dict[str, Any] = {}
 
-        Returns:
-            [{nodeId, title, summary, text, page_range, metadata}, ...]
-        """
         if not tree or not tree.get("nodes"):
             return []
 
@@ -44,21 +45,33 @@ class SectionRetriever:
         tree_json = json.dumps(compact_tree, ensure_ascii=False, indent=2)
 
         system_prompt, user_prompt_template = get_prompts("page_index", "tree_navigator", language)
-        user_prompt = user_prompt_template.format(tree_json=tree_json, query=query)
+        system_with_tree = f"{system_prompt}\n\n---\nDocument Tree:\n{tree_json}"
+        user_prompt = user_prompt_template.format(tree_json="", query=query)
 
         logger.info(f"Navigating tree for query: {query[:100]!r}")
 
         nav_start = time.time()
-        response = self.llm.call(
+        response, usage = await self.llm.a_call(
             prompt=user_prompt,
-            system_instruction=system_prompt,
+            system_instruction=system_with_tree,
             temperature=0.1,
-            max_tokens=4096,  # thinking tokens eat into the budget; 500 is too low
+            max_tokens=4096,
             response_mime_type="application/json",
-            add_warning=False,
+            return_metadata=True,
         )
-        logger.info(f"[latency] navigator LLM call: {time.time() - nav_start:.2f}s")
+        self.last_nav_usage = usage
+        logger.info(f"[latency] navigator LLM call (async): {time.time() - nav_start:.2f}s")
 
+        return self._finalize(response, tree, markdown_content, top_k)
+
+    def _finalize(
+        self,
+        response: str,
+        tree: dict,
+        markdown_content: str,
+        top_k: int,
+    ) -> list[dict[str, Any]]:
+        """Shared post-processing: parse JSON, dedupe, look up nodes, extract text."""
         nav_result = self._parse_json_response(response)
         relevant_node_ids: list[str] = []
 
@@ -71,7 +84,6 @@ class SectionRetriever:
             logger.warning("Tree navigator returned no relevant nodes")
             return []
 
-        # Deduplicate preserving order
         seen = set()
         unique_ids = []
         for nid in relevant_node_ids:
@@ -110,8 +122,52 @@ class SectionRetriever:
                     },
                 }
             )
-
         return sections
+
+    def retrieve(
+        self,
+        query: str,
+        tree: dict,
+        markdown_content: str,
+        language: str = "en",
+        top_k: int = 5,
+    ) -> list[dict[str, Any]]:
+        """
+        Navigate tree and retrieve relevant section text.
+
+        Returns:
+            [{nodeId, title, summary, text, page_range, metadata}, ...]
+        """
+        if not tree or not tree.get("nodes"):
+            return []
+
+        compact_tree = self._build_compact_tree(tree)
+        tree_json = json.dumps(compact_tree, ensure_ascii=False, indent=2)
+
+        system_prompt, user_prompt_template = get_prompts("page_index", "tree_navigator", language)
+
+        # Fold the tree into the system_instruction so the module-level
+        # system-prompt cache can key on (model, hash(system+tree)) and reuse
+        # the 36K-token prefill across every query against the same document.
+        system_with_tree = f"{system_prompt}\n\n---\nDocument Tree:\n{tree_json}"
+        # User template still has a {tree_json} slot — feed it an empty string
+        # so the per-call user prompt contains only the query + instructions.
+        user_prompt = user_prompt_template.format(tree_json="", query=query)
+
+        logger.info(f"Navigating tree for query: {query[:100]!r}")
+
+        nav_start = time.time()
+        response = self.llm.call(
+            prompt=user_prompt,
+            system_instruction=system_with_tree,
+            temperature=0.1,
+            max_tokens=4096,  # thinking tokens eat into the budget; 500 is too low
+            response_mime_type="application/json",
+            add_warning=False,
+        )
+        logger.info(f"[latency] navigator LLM call: {time.time() - nav_start:.2f}s")
+
+        return self._finalize(response, tree, markdown_content, top_k)
 
     def _extract_node_text(self, node: dict, markdown: str) -> tuple[str, bool]:
         """

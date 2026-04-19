@@ -184,17 +184,30 @@ class QueryOrchestrator:
             if fu.suggestions:
                 yield format_event("follow_ups", {"follow_ups": fu.suggestions})
 
-            # Aggregate LLM spend for the daily counter.
-            total_cost = (synthesis_meta.get("cost_usd") or 0.0) + fu.cost_usd
+            # Aggregate LLM spend for the daily counter — navigator + synthesis
+            # + follow-ups. Navigator used to be invisible to per-user billing.
+            nav_usage = self.retrieval.last_nav_usage
+            total_cost = (
+                float(nav_usage.get("cost_usd", 0.0) or 0.0)
+                + (synthesis_meta.get("cost_usd") or 0.0)
+                + fu.cost_usd
+            )
             total_tokens = (
-                (synthesis_meta.get("input_tokens") or 0)
+                int(nav_usage.get("input_tokens", 0) or 0)
+                + int(nav_usage.get("output_tokens", 0) or 0)
+                + int(nav_usage.get("thinking_tokens", 0) or 0)
+                + (synthesis_meta.get("input_tokens") or 0)
                 + (synthesis_meta.get("output_tokens") or 0)
                 + (synthesis_meta.get("thinking_tokens") or 0)
                 + fu.tokens
             )
             logger.info(
                 f"Query done | chunks={len(chunks)} | tokens={total_tokens} | "
-                f"cost=${total_cost:.6f} | follow_ups={len(fu.suggestions)}"
+                f"cost=${total_cost:.6f} "
+                f"(nav=${float(nav_usage.get('cost_usd', 0.0)):.6f}, "
+                f"syn=${float(synthesis_meta.get('cost_usd') or 0.0):.6f}, "
+                f"fup=${fu.cost_usd:.6f}) | "
+                f"follow_ups={len(fu.suggestions)}"
             )
             await quota.increment_llm_usage(user_id, total_cost, total_tokens)
 
