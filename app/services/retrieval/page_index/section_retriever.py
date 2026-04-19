@@ -8,11 +8,12 @@ Fixes over original:
 
 import json
 import re
+import time
 from typing import Any
 
 from loguru import logger
 
-from app.prompts.new_flow import tree_navigator as prompts
+from app.prompts.factory import get_prompts
 from app.services.llm import LLMService
 
 
@@ -42,18 +43,21 @@ class SectionRetriever:
         compact_tree = self._build_compact_tree(tree)
         tree_json = json.dumps(compact_tree, ensure_ascii=False, indent=2)
 
-        system_prompt, user_prompt_template = prompts.get_prompts(language)
+        system_prompt, user_prompt_template = get_prompts("page_index", "tree_navigator", language)
         user_prompt = user_prompt_template.format(tree_json=tree_json, query=query)
 
         logger.info(f"Navigating tree for query: {query[:100]!r}")
 
+        nav_start = time.time()
         response = self.llm.call(
             prompt=user_prompt,
             system_instruction=system_prompt,
             temperature=0.1,
             max_tokens=4096,  # thinking tokens eat into the budget; 500 is too low
+            response_mime_type="application/json",
             add_warning=False,
         )
+        logger.info(f"[latency] navigator LLM call: {time.time() - nav_start:.2f}s")
 
         nav_result = self._parse_json_response(response)
         relevant_node_ids: list[str] = []
@@ -87,15 +91,16 @@ class SectionRetriever:
                 logger.debug(f"nodeId {node_id!r} not found in tree")
                 continue
 
-            section_text = self._extract_node_text(node, markdown_content)
+            section_text, is_exact = self._extract_node_text(node, markdown_content)
             page_range = node.get("page_range", [])
             sections.append(
                 {
                     "nodeId": node_id,
-                    "int_id": node.get("id"),  # depth-first integer ID for highlights API
+                    "int_id": node.get("id"),
                     "title": node.get("title", ""),
                     "summary": node.get("summary", ""),
                     "text": section_text,
+                    "is_exact_text": is_exact,
                     "page_range": page_range,
                     "page_bboxes": node.get("page_bboxes", []),
                     "metadata": {
@@ -108,25 +113,36 @@ class SectionRetriever:
 
         return sections
 
-    def _extract_node_text(self, node: dict, markdown: str) -> str:
-        """Extract text using char offsets. Falls back to regex then summary."""
+    def _extract_node_text(self, node: dict, markdown: str) -> tuple[str, bool]:
+        """
+        Extract text using char offsets. Falls back to regex then summary.
+
+        Returns:
+            (text, is_exact) — is_exact=True when text is from the actual document,
+            False when it's an LLM-generated summary (fallback).
+        """
         start = node.get("start_char", -1)
         end = node.get("end_char", -1)
 
         if start >= 0 and end > start and start < len(markdown):
-            return markdown[start : min(end, len(markdown))]
+            text = markdown[start : min(end, len(markdown))]
+            # Strip line-number markers (->N<-) left by OCR processing
+            # Match ``-> N<-`` including padding whitespace inside the delimiters
+            # (OCR parser right-justifies the number, e.g. ``-> 6<-``).
+            text = re.sub(r"->\s*\d+\s*<-\s*", "", text)
+            return text, True
 
         # Fallback: regex (for trees built before offset support)
         title = node.get("title", "").strip()
         if title and markdown:
             escaped = re.escape(title)
-            # Allow optional numbering prefix like "2.1 " between hashes and title
             pattern = rf"(#{1,6}[^\n]*{escaped}.*?)(?=\n#{1,6}\s|\Z)"
             match = re.search(pattern, markdown, re.DOTALL | re.IGNORECASE)
             if match:
-                return match.group(1).strip()[:3000]
+                return match.group(1).strip()[:3000], True
 
-        return node.get("summary", "")
+        # Last resort — LLM summary, not exact document text
+        return node.get("summary", ""), False
 
     def _build_compact_tree(self, tree: dict) -> dict:
         def _compact(nodes: list) -> list:

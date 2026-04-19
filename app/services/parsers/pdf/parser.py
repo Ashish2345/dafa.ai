@@ -88,13 +88,13 @@ class PDFParser(Parser):
             raise ValueError(f"Unsupported OCR provider '{provider_name}'. Supported: {supported}")
 
         logger.debug(f"Using OCR provider: {provider_name}")
-        
+
         # Pass language hints to OCR provider if available
         ocr_languages = getattr(self.pdf_config, "ocr_languages", None)
         if ocr_languages and provider_name == "google":
             logger.info(f"Configuring OCR with languages: {ocr_languages}")
             return provider_class(language_hints=ocr_languages)
-        
+
         return provider_class()
 
     async def _pre_process(self, file_path: Union[str, Path], file_obj: BinaryIO | None = None) -> dict[str, Any]:
@@ -158,17 +158,29 @@ class PDFParser(Parser):
         avg_words_per_page = total_words / len(page_scalars) if page_scalars else 0
         is_digital = avg_words_per_page > 10  # Threshold for digital detection
 
-        # Always run OCR - DigitalOCR for digital PDFs, non-digital OCR for scanned
-        if is_digital:
+        # force_ocr bypasses the digital path — required for PDFs whose embedded
+        # text has broken ToUnicode CMaps (e.g. some Nepali/Devanagari PDFs),
+        # where DigitalOCR produces scrambled characters.
+        if getattr(self.pdf_config, "force_ocr", False) and is_digital:
+            logger.info("force_ocr=True: bypassing DigitalOCR and running non-digital OCR instead")
+            is_digital = False
+
+        # Route to the right OCR path. ``ocr_enabled=True`` is treated as an
+        # explicit request to run real OCR even on digital PDFs — useful when
+        # the embedded text is scrambled (broken ToUnicode CMaps, etc.) and
+        # auto-detection would otherwise prefer DigitalOCR and save garbage.
+        if self.pdf_config.ocr_enabled:
+            logger.info(
+                f"ocr_enabled=True: forcing non-digital OCR "
+                f"(avg {avg_words_per_page:.1f} words/page, is_digital={is_digital})"
+            )
+            raw_ocr = self._run_ocr(file_path, is_digital=False)
+        elif is_digital:
             logger.info(f"PDF is digital (avg {avg_words_per_page:.1f} words/page). Running DigitalOCR...")
             raw_ocr = self._run_ocr(file_path, is_digital=True)
         else:
-            if self.pdf_config.ocr_enabled:
-                logger.info(f"PDF appears to be non-digital (avg {avg_words_per_page:.1f} words/page). Running OCR...")
-                raw_ocr = self._run_ocr(file_path, is_digital=False)
-            else:
-                logger.info("OCR disabled, returning empty OCR results")
-                raw_ocr = [pd.DataFrame() for _ in page_scalars]
+            logger.info(f"PDF appears to be non-digital (avg {avg_words_per_page:.1f} words/page). Running OCR...")
+            raw_ocr = self._run_ocr(file_path, is_digital=False)
 
         # Page images are only needed for AWS table extraction.
         # Loading all pages at once (~26 MB each) causes OOM on large documents,

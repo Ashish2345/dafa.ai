@@ -5,9 +5,8 @@ Implements RetrievalStrategy using LLM-guided hierarchical tree navigation.
 """
 
 import asyncio
-import json
+import time
 from copy import deepcopy
-from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional
 
 from loguru import logger
@@ -23,7 +22,6 @@ from app.services.retrieval.page_index.cache import (
 )
 from app.services.retrieval.page_index.section_retriever import SectionRetriever
 from app.services.retrieval.page_index.tree_builder import TreeBuilder
-from app.settings import settings
 
 
 class PageIndexStrategy(RetrievalStrategy):
@@ -39,7 +37,15 @@ class PageIndexStrategy(RetrievalStrategy):
         self.repo = repository
         llm = llm_service or LLMService()
         self.tree_builder = tree_builder or TreeBuilder(llm_service=llm)
-        self.section_retriever = section_retriever or SectionRetriever(llm_service=llm)
+        # Let SectionRetriever create its own LLMService so the navigator-specific
+        # model (_NAVIGATOR_MODEL in section_retriever.py) actually applies.
+        # When a caller explicitly passes llm_service, respect it for both.
+        if section_retriever is not None:
+            self.section_retriever = section_retriever
+        elif llm_service is not None:
+            self.section_retriever = SectionRetriever(llm_service=llm)
+        else:
+            self.section_retriever = SectionRetriever()
 
     async def retrieve(
         self,
@@ -62,8 +68,10 @@ class PageIndexStrategy(RetrievalStrategy):
 
         for doc_id in document_ids:
             # Try file cache first, fall back to MongoDB
+            load_start = time.time()
             tree_doc = get_cached_tree(doc_id)
             markdown = get_cached_markdown(doc_id)
+            cache_hit = bool(tree_doc and markdown)
 
             if not tree_doc or not markdown:
                 tree_doc = await self.repo.get_tree(doc_id)
@@ -72,6 +80,11 @@ class PageIndexStrategy(RetrievalStrategy):
                     continue
                 # Cache for next time
                 save_to_cache(doc_id, tree_doc, markdown)
+            logger.info(
+                f"[latency] tree+markdown load for {doc_id}: "
+                f"{time.time() - load_start:.2f}s (cache_hit={cache_hit}, "
+                f"markdown_chars={len(markdown)})"
+            )
 
 
             tree = tree_doc.get("tree", {})
@@ -101,6 +114,7 @@ class PageIndexStrategy(RetrievalStrategy):
                             "node_id": section["nodeId"],
                             "node_int_id": section.get("int_id"),
                             "page_bboxes": section.get("page_bboxes", []),
+                            "is_exact_text": section.get("is_exact_text", True),
                         },
                         score=1.0 - (idx * 0.1),
                         metadata={
@@ -162,17 +176,33 @@ class PageIndexStrategy(RetrievalStrategy):
                 tree = self.tree_builder._merge_trees(subtrees, language)
 
         tree["language"] = language
-        unmatched_nodes = self.tree_builder._attach_char_offsets(
-            tree.get("nodes", []), markdown, page_bbox_map
+
+        # Offset resolution + bbox attachment is CPU-bound (regex + fuzzy
+        # matching per node). On large trees (188+ sections × 250K-char
+        # markdown) this can block the event loop long enough that Motor's
+        # MongoDB session is torn down — the next ``await repo.save_tree``
+        # then fails with "operation cancelled". Offload to a worker thread
+        # so the event loop keeps servicing heartbeats.
+        def _resolve_offsets_and_bboxes():
+            unmatched = self.tree_builder._attach_char_offsets(
+                tree.get("nodes", []), markdown, page_bbox_map
+            )
+            TreeBuilder._assign_node_ids(tree["nodes"])
+            if page_bbox_map:
+                TreeBuilder._attach_page_bboxes(tree["nodes"], page_bbox_map)
+            return unmatched
+
+        unmatched_nodes = await asyncio.to_thread(_resolve_offsets_and_bboxes)
+        logger.info(
+            f"[{document_id[:8]}] page_bbox_map received: "
+            f"{len(page_bbox_map) if page_bbox_map else 'None'} entries"
         )
-        TreeBuilder._assign_node_ids(tree["nodes"])
-        logger.info(f"[{document_id[:8]}] page_bbox_map received: {len(page_bbox_map) if page_bbox_map else 'None'} entries")
-        if page_bbox_map:
-            TreeBuilder._attach_page_bboxes(tree["nodes"], page_bbox_map)
-            # Log first node's page_bboxes to verify
-            if tree["nodes"]:
-                first = tree["nodes"][0]
-                logger.info(f"[{document_id[:8]}] First node page_bboxes: {first.get('page_bboxes', 'MISSING')}")
+        if page_bbox_map and tree["nodes"]:
+            first = tree["nodes"][0]
+            logger.info(
+                f"[{document_id[:8]}] First node page_bboxes: "
+                f"{first.get('page_bboxes', 'MISSING')}"
+            )
 
         await self.repo.save_tree(
             document_id=document_id,
@@ -183,20 +213,6 @@ class PageIndexStrategy(RetrievalStrategy):
         )
         node_count = self.tree_builder._count_nodes(tree.get("nodes", []))
         logger.info(f"PageIndex tree saved: {node_count} nodes")
-
-        # Also dump the tree to a JSON file on disk for inspection/debugging.
-        # Non-fatal: failure here must never break ingest.
-        try:
-            trees_dir = Path(settings.upload_dir) / "trees"
-            trees_dir.mkdir(parents=True, exist_ok=True)
-            tree_path = trees_dir / f"{document_id}.tree.json"
-            tree_path.write_text(
-                json.dumps(tree, ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
-            logger.info(f"[{document_id[:8]}] Tree written to {tree_path}")
-        except Exception as e:  # noqa: BLE001 - disk dump is best-effort only
-            logger.warning(f"[{document_id[:8]}] Failed to write tree.json (non-fatal): {e}")
 
         await _notify(f"PageIndex tree saved ({node_count} nodes)")
 
@@ -218,6 +234,19 @@ class PageIndexStrategy(RetrievalStrategy):
             "ingest_warnings": ingest_warnings,
             "node_count": node_count,
         }
+
+    @staticmethod
+    def _tree_has_offsets(nodes: list[dict]) -> bool:
+        """Return True if at least one leaf node has a valid start_char/end_char."""
+        for node in nodes:
+            children = node.get("children", [])
+            if children:
+                if PageIndexStrategy._tree_has_offsets(children):
+                    return True
+            else:
+                if node.get("start_char", -1) >= 0 and node.get("end_char", -1) > 0:
+                    return True
+        return False
 
     async def _filter_by_collection(self, document_ids: list[str], collection_name: str) -> list[str]:
         matched = []
