@@ -21,9 +21,6 @@ from app.services.llm import LLMService
 from app.services.retrieval.base import RetrievedChunk
 
 
-_STREAM_SENTINEL = object()
-
-
 @dataclass
 class SynthesisOutcome:
     """Result of a synthesis run (streaming or blocking)."""
@@ -77,15 +74,13 @@ class SynthesisService:
         self._last_outcome = SynthesisOutcome()
         query_for_llm = self._prepend_conversation(query, history)
 
-        stream_gen = self._llm.stream_synthesize(query_for_llm, chunks, language)
         streamed_parts: List[str] = []
         stream_failed = False
 
         try:
-            while True:
-                item = await asyncio.to_thread(next, stream_gen, _STREAM_SENTINEL)
-                if item is _STREAM_SENTINEL:
-                    break
+            async for item in self._llm.a_stream_synthesize(
+                query_for_llm, chunks, language,
+            ):
                 if isinstance(item, dict) and item.get("__done__"):
                     self._last_outcome.answer = item.get("full_text", "") or "".join(streamed_parts)
                     self._last_outcome.metadata = item.get("metadata", {}) or {}

@@ -2,6 +2,7 @@
 FastAPI application entry point.
 """
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -46,10 +47,15 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Manage database connection lifecycle."""
     logger.info(f"Starting {settings.app_name} in {settings.environment.value} mode")
+    prewarm_task: asyncio.Task | None = None
     try:
         await mongodb.connect(settings)
         # Load plan catalog from config/plans.yaml
         plan_catalog.load()
+        # Pre-warm Gemini context caches in the background so the first user
+        # after a restart doesn't pay the cache-creation latency.
+        from app.services.llm.prewarm import prewarm_caches
+        prewarm_task = asyncio.create_task(prewarm_caches())
         logger.info("Application startup complete")
     except Exception as e:
         logger.error(f"Failed to start application: {e}")
@@ -58,6 +64,8 @@ async def lifespan(app: FastAPI):
     yield
 
     logger.info("Shutting down application")
+    if prewarm_task and not prewarm_task.done():
+        prewarm_task.cancel()
     await mongodb.disconnect()
     logger.info("Application shutdown complete")
 

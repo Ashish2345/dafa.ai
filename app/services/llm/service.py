@@ -5,39 +5,101 @@ Handles LLM API calls with strict separation of concerns.
 Only responsible for calling Gemini 2.5 Flash - no business logic.
 """
 
+import hashlib
+import threading
 import time
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from google import genai
-from google.genai.types import GenerateContentConfig, GenerateContentResponse
+from google.genai.types import (
+    AutomaticFunctionCallingConfig,
+    CreateCachedContentConfig,
+    GenerateContentConfig,
+    GenerateContentResponse,
+    ThinkingConfig,
+)
+
+
+# Applied to every call. Disables 2.5 Flash's implicit "dynamic thinking"
+# (which burns wall-clock even when thoughts_token_count reports 0) and
+# turns off automatic function-calling schema validation (not used here).
+_FAST_MODE_CONFIG = {
+    "thinking_config": ThinkingConfig(thinking_budget=0),
+    "automatic_function_calling": AutomaticFunctionCallingConfig(disable=True),
+}
 from loguru import logger
 
 from app.settings import settings
 from app.services.llm.response_handler import ResponseHandler
 
 
-# ---------------------------------------------------------------------------
-# Gemini pricing (USD per 1M tokens). Update here when Google changes rates.
-# Gemini 2.5 Flash, text I/O. thoughts_token_count is billed at the OUTPUT rate.
-# Source: https://ai.google.dev/gemini-api/docs/pricing  (verify periodically)
-# ---------------------------------------------------------------------------
+# System-prompt cache: {(model, sha256(system_prompt)): (cache_name, created_at)}
+# Shared across LLMService instances so every request hits the same cache.
+_SYSTEM_CACHE: Dict[Tuple[str, str], Tuple[str, float]] = {}
+_SYSTEM_CACHE_LOCK = threading.Lock()
+_SYSTEM_CACHE_TTL_SECONDS = 3600  # 1h — matches cache TTL sent to Gemini
+_SYSTEM_CACHE_MIN_TOKENS = 1024   # Gemini 2.5 Flash caching floor
+_AVG_CHARS_PER_TOKEN = 3.5        # rough heuristic to skip tiny prompts
+
+
+# Gemini pricing in USD per 1M tokens.
+#   - "input"   — uncached prompt tokens
+#   - "cached"  — prompt tokens served from a context cache (25% of input rate)
+#   - "output"  — generated tokens (thoughts billed at this rate too)
+#   - "storage_per_hour" — cost per 1M tokens held in a context cache per hour
+# Source: https://ai.google.dev/gemini-api/docs/pricing (verify periodically)
 _PRICE_PER_1M = {
-    "gemini-2.5-flash": {"input": 0.30, "output": 2.50, "thoughts": 2.50},
-    "gemini-2.5-pro": {"input": 1.25, "output": 10.00, "thoughts": 10.00},
-    "gemini-2.0-flash": {"input": 0.10, "output": 0.40, "thoughts": 0.40},
+    "gemini-2.5-flash": {
+        "input": 0.30, "cached": 0.075, "output": 2.50, "thoughts": 2.50,
+        "storage_per_hour": 1.00,
+    },
+    "gemini-2.5-pro": {
+        "input": 1.25, "cached": 0.3125, "output": 10.00, "thoughts": 10.00,
+        "storage_per_hour": 4.50,
+    },
+    "gemini-2.0-flash": {
+        "input": 0.10, "cached": 0.025, "output": 0.40, "thoughts": 0.40,
+        "storage_per_hour": 1.00,
+    },
 }
 
 
-def _cost_usd(model: str, in_tok: int, out_tok: int, think_tok: int) -> float:
-    """Compute per-call cost in USD. Returns 0.0 if model is not in price table."""
+def _cost_usd(
+    model: str,
+    in_tok: int,
+    out_tok: int,
+    think_tok: int,
+    cached_tok: int = 0,
+) -> float:
+    """Per-call cost in USD.
+
+    ``in_tok`` is the API-reported ``prompt_token_count`` which INCLUDES the
+    cached portion. We split it so cached tokens are billed at the cached rate
+    (25% of input) and the rest at the standard input rate.
+    """
     rates = _PRICE_PER_1M.get(model)
     if not rates:
         return 0.0
+    cached_tok = max(0, min(cached_tok, in_tok))
+    uncached_in = in_tok - cached_tok
     return (
-        in_tok * rates["input"]
+        uncached_in * rates["input"]
+        + cached_tok * rates["cached"]
         + out_tok * rates["output"]
         + think_tok * rates["thoughts"]
     ) / 1_000_000
+
+
+def _cache_storage_cost_usd(model: str, cached_tok: int, ttl_seconds: int) -> float:
+    """Storage cost for holding ``cached_tok`` tokens in a context cache for ``ttl_seconds``.
+
+    This is charged once at cache-creation time and represents the full TTL.
+    """
+    rates = _PRICE_PER_1M.get(model)
+    if not rates or cached_tok <= 0 or ttl_seconds <= 0:
+        return 0.0
+    hours = ttl_seconds / 3600.0
+    return (cached_tok * rates["storage_per_hour"] * hours) / 1_000_000
 
 
 class LLMService:
@@ -79,6 +141,70 @@ class LLMService:
         self.max_retries = max_retries
         self.retry_delay = retry_delay
         self.response_handler = ResponseHandler()
+
+    def _get_or_create_system_cache(self, system_prompt: str) -> Optional[str]:
+        """Return a Gemini cache resource name for `system_prompt`, or None.
+
+        Caches are keyed by (model, sha256(system_prompt)) and refreshed after
+        TTL expiry. Returns None when the prompt is below Gemini's cache floor
+        (~1024 tokens) or when cache creation fails — callers then fall back to
+        inline system_instruction.
+        """
+        if not self.client or not system_prompt:
+            return None
+        # Skip caching for prompts that are clearly too small to qualify.
+        if len(system_prompt) < _SYSTEM_CACHE_MIN_TOKENS * _AVG_CHARS_PER_TOKEN:
+            return None
+
+        key = (self.model, hashlib.sha256(system_prompt.encode("utf-8")).hexdigest())
+        now = time.time()
+
+        with _SYSTEM_CACHE_LOCK:
+            entry = _SYSTEM_CACHE.get(key)
+            if entry and (now - entry[1]) < (_SYSTEM_CACHE_TTL_SECONDS - 60):
+                return entry[0]
+
+            try:
+                cache = self.client.caches.create(
+                    model=self.model,
+                    config=CreateCachedContentConfig(
+                        system_instruction=system_prompt,
+                        ttl=f"{_SYSTEM_CACHE_TTL_SECONDS}s",
+                    ),
+                )
+                _SYSTEM_CACHE[key] = (cache.name, now)
+                # Report the one-time storage cost for the full TTL. The
+                # cache's usage_metadata carries the exact token count; fall
+                # back to a char-based estimate if the field is absent.
+                cache_tok = 0
+                um = getattr(cache, "usage_metadata", None)
+                if um is not None:
+                    cache_tok = getattr(um, "total_token_count", 0) or 0
+                if not cache_tok:
+                    cache_tok = int(len(system_prompt) / _AVG_CHARS_PER_TOKEN)
+                storage_cost = _cache_storage_cost_usd(
+                    self.model, cache_tok, _SYSTEM_CACHE_TTL_SECONDS,
+                )
+                logger.info(
+                    f"[cache] created system-prompt cache {cache.name} "
+                    f"({len(system_prompt)}ch, {cache_tok} tok, model={self.model}) "
+                    f"storage ${storage_cost:.6f} for {_SYSTEM_CACHE_TTL_SECONDS // 60}min TTL"
+                )
+                return cache.name
+            except Exception as e:
+                # Most common cause: prompt below the model's minimum cache size.
+                logger.warning(f"[cache] create failed ({e}); falling back to inline system_instruction")
+                # Negative-cache the failure briefly so we don't hammer the API.
+                _SYSTEM_CACHE[key] = ("", now)
+                return None
+
+    def _invalidate_system_cache(self, system_prompt: str) -> None:
+        """Drop a cached entry — call when Gemini reports the cache expired."""
+        if not system_prompt:
+            return
+        key = (self.model, hashlib.sha256(system_prompt.encode("utf-8")).hexdigest())
+        with _SYSTEM_CACHE_LOCK:
+            _SYSTEM_CACHE.pop(key, None)
 
     def call(
         self,
@@ -201,12 +327,18 @@ class LLMService:
             _GEMINI_MAX_OUTPUT_TOKENS = 65_536
             requested_max_tokens = max_tokens or self.max_tokens
             actual_max_tokens = min(requested_max_tokens, _GEMINI_MAX_OUTPUT_TOKENS)
-            
+
+            cache_name = self._get_or_create_system_cache(system_instruction) if system_instruction else None
+
             config_kwargs = {
-                "system_instruction": system_instruction,
                 "temperature": temperature or self.temperature,
                 "max_output_tokens": actual_max_tokens,
+                **_FAST_MODE_CONFIG,
             }
+            if cache_name:
+                config_kwargs["cached_content"] = cache_name
+            elif system_instruction:
+                config_kwargs["system_instruction"] = system_instruction
             # When a structured mime type is requested (e.g. application/json),
             # pass it through. This dramatically reduces thinking-token
             # consumption on Gemini 2.5 for JSON tasks because the model is
@@ -216,11 +348,26 @@ class LLMService:
             config = GenerateContentConfig(**config_kwargs)
 
             # Call API
-            response: GenerateContentResponse = self.client.models.generate_content(
-                model=self.model,
-                contents=messages,
-                config=config,
-            )
+            try:
+                response: GenerateContentResponse = self.client.models.generate_content(
+                    model=self.model,
+                    contents=messages,
+                    config=config,
+                )
+            except Exception as api_err:
+                if cache_name and "cache" in str(api_err).lower():
+                    logger.warning(f"[cache] stale cache {cache_name}; retrying without: {api_err}")
+                    self._invalidate_system_cache(system_instruction)
+                    config_kwargs.pop("cached_content", None)
+                    config_kwargs["system_instruction"] = system_instruction
+                    config = GenerateContentConfig(**config_kwargs)
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=messages,
+                        config=config,
+                    )
+                else:
+                    raise
 
             # Check if response was truncated
             finish_reason = None
@@ -270,6 +417,7 @@ class LLMService:
                 prompt_tokens or 0,
                 output_tokens or 0,
                 thoughts_tokens or 0,
+                cached_tok=cached_tokens or 0,
             )
 
             # Validate and sanitize response
@@ -383,6 +531,7 @@ class LLMService:
                 system_instruction=system_instruction,
                 temperature=temperature or self.temperature,
                 max_output_tokens=max_tokens or self.max_tokens,
+                **_FAST_MODE_CONFIG,
             )
 
             # Call API
@@ -511,23 +660,51 @@ class LLMService:
             query, chunks, language
         )
 
-        config = GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.2,
-            max_output_tokens=8192,
-        )
+        cache_name = self._get_or_create_system_cache(system_prompt)
+        if cache_name:
+            config = GenerateContentConfig(
+                cached_content=cache_name,
+                temperature=0.2,
+                max_output_tokens=8192,
+                **_FAST_MODE_CONFIG,
+            )
+        else:
+            config = GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.2,
+                max_output_tokens=8192,
+                **_FAST_MODE_CONFIG,
+            )
         messages = [{"role": "user", "parts": [{"text": user_prompt}]}]
 
         synth_start = time.time()
         parts: list[str] = []
         last_response = None
 
-        try:
-            stream = self.client.models.generate_content_stream(
+        def _open_stream(cfg):
+            return self.client.models.generate_content_stream(
                 model=self.model,
                 contents=messages,
-                config=config,
+                config=cfg,
             )
+
+        try:
+            try:
+                stream = _open_stream(config)
+            except Exception as e:
+                # Cache may have been evicted server-side before we used it.
+                if cache_name and "cache" in str(e).lower():
+                    logger.warning(f"[cache] stale cache {cache_name}; retrying without: {e}")
+                    self._invalidate_system_cache(system_prompt)
+                    config = GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.2,
+                        max_output_tokens=8192,
+                        **_FAST_MODE_CONFIG,
+                    )
+                    stream = _open_stream(config)
+                else:
+                    raise
             for chunk in stream:
                 last_response = chunk
                 # ``chunk.text`` is lazy-parsed by the SDK and can raise on
@@ -552,18 +729,217 @@ class LLMService:
         elapsed = time.time() - synth_start
 
         # Aggregate usage/cost from the final response object
-        input_tokens = output_tokens = thinking_tokens = 0
+        input_tokens = output_tokens = thinking_tokens = cached_tokens = 0
         if last_response is not None and getattr(last_response, "usage_metadata", None):
             um = last_response.usage_metadata
             input_tokens = getattr(um, "prompt_token_count", 0) or 0
             output_tokens = getattr(um, "candidates_token_count", 0) or 0
             thinking_tokens = getattr(um, "thoughts_token_count", 0) or 0
+            cached_tokens = getattr(um, "cached_content_token_count", 0) or 0
 
-        cost_usd = _cost_usd(self.model, input_tokens, output_tokens, thinking_tokens)
+        cost_usd = _cost_usd(
+            self.model, input_tokens, output_tokens, thinking_tokens,
+            cached_tok=cached_tokens,
+        )
 
         logger.info(
             f"LLM [{self.model}] {elapsed:.2f}s stream | {len(full_text)}ch | "
-            f"in={input_tokens} out={output_tokens} thoughts={thinking_tokens} | "
+            f"in={input_tokens} out={output_tokens} cached={cached_tokens} thoughts={thinking_tokens} | "
+            f"${cost_usd:.6f} (chunks={len(chunks)}, ctx={context_chars}ch)"
+        )
+
+        yield {
+            "__done__": True,
+            "full_text": full_text,
+            "metadata": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "thinking_tokens": thinking_tokens,
+                "cost_usd": cost_usd,
+                "elapsed_seconds": elapsed,
+                "model": self.model,
+            },
+        }
+
+    # ------------------------------------------------------------------
+    # Native async paths — use client.aio over aiohttp. Bypass the SDK's
+    # sync-in-a-thread wrapper that costs 5–10× on streaming throughput.
+    # ------------------------------------------------------------------
+
+    async def a_call(
+        self,
+        prompt: str,
+        system_instruction: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        response_mime_type: Optional[str] = None,
+        return_metadata: bool = False,
+    ) -> Union[str, Tuple[str, Dict[str, Any]]]:
+        """Async single-turn call.
+
+        Returns the response text. When ``return_metadata=True``, returns
+        ``(text, metadata)`` where metadata carries input/output/cached/thinking
+        tokens and the per-call ``cost_usd`` — exactly what the orchestrator
+        needs to credit the correct amount to the user's daily usage counter.
+        """
+        if not self.client:
+            raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in .env file.")
+
+        _GEMINI_MAX_OUTPUT_TOKENS = 65_536
+        actual_max_tokens = min(max_tokens or self.max_tokens, _GEMINI_MAX_OUTPUT_TOKENS)
+
+        cache_name = self._get_or_create_system_cache(system_instruction) if system_instruction else None
+
+        config_kwargs = {
+            "temperature": temperature or self.temperature,
+            "max_output_tokens": actual_max_tokens,
+            **_FAST_MODE_CONFIG,
+        }
+        if cache_name:
+            config_kwargs["cached_content"] = cache_name
+        elif system_instruction:
+            config_kwargs["system_instruction"] = system_instruction
+        if response_mime_type:
+            config_kwargs["response_mime_type"] = response_mime_type
+
+        messages = [{"role": "user", "parts": [{"text": prompt}]}]
+
+        start = time.time()
+        try:
+            response = await self.client.aio.models.generate_content(
+                model=self.model,
+                contents=messages,
+                config=GenerateContentConfig(**config_kwargs),
+            )
+        except Exception as api_err:
+            if cache_name and "cache" in str(api_err).lower():
+                logger.warning(f"[cache] stale cache {cache_name}; retrying without: {api_err}")
+                self._invalidate_system_cache(system_instruction)
+                config_kwargs.pop("cached_content", None)
+                config_kwargs["system_instruction"] = system_instruction
+                response = await self.client.aio.models.generate_content(
+                    model=self.model,
+                    contents=messages,
+                    config=GenerateContentConfig(**config_kwargs),
+                )
+            else:
+                raise
+
+        text = getattr(response, "text", "") or ""
+        elapsed = time.time() - start
+
+        in_tok = out_tok = cached_tok = think_tok = 0
+        cost = 0.0
+        um = getattr(response, "usage_metadata", None)
+        if um is not None:
+            in_tok = getattr(um, "prompt_token_count", 0) or 0
+            out_tok = getattr(um, "candidates_token_count", 0) or 0
+            cached_tok = getattr(um, "cached_content_token_count", 0) or 0
+            think_tok = getattr(um, "thoughts_token_count", 0) or 0
+            cost = _cost_usd(
+                self.model, in_tok, out_tok, think_tok, cached_tok=cached_tok,
+            )
+            logger.info(
+                f"LLM [{self.model}] {elapsed:.2f}s | {len(text)}ch | "
+                f"in={in_tok} out={out_tok} cached={cached_tok} thoughts={think_tok} | ${cost:.6f}"
+            )
+        if return_metadata:
+            return text, {
+                "input_tokens": in_tok,
+                "output_tokens": out_tok,
+                "cached_tokens": cached_tok,
+                "thinking_tokens": think_tok,
+                "cost_usd": cost,
+                "elapsed_seconds": elapsed,
+                "model": self.model,
+            }
+        return text
+
+    async def a_stream_synthesize(
+        self,
+        query: str,
+        chunks: list,
+        language: str = "en",
+    ):
+        """Native-async streaming synthesis. Yields text; final yield is the
+        ``{"__done__": True, ...}`` metadata envelope, mirroring the sync variant.
+        """
+        if not self.client:
+            raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in .env file.")
+
+        system_prompt, user_prompt, context_chars = self._build_synthesis_prompt(
+            query, chunks, language
+        )
+
+        cache_name = self._get_or_create_system_cache(system_prompt)
+        config_kwargs = {
+            "temperature": 0.2,
+            "max_output_tokens": 8192,
+            **_FAST_MODE_CONFIG,
+        }
+        if cache_name:
+            config_kwargs["cached_content"] = cache_name
+        else:
+            config_kwargs["system_instruction"] = system_prompt
+        messages = [{"role": "user", "parts": [{"text": user_prompt}]}]
+
+        synth_start = time.time()
+        parts: list[str] = []
+        last_response = None
+
+        async def _iter(cfg):
+            return await self.client.aio.models.generate_content_stream(
+                model=self.model,
+                contents=messages,
+                config=cfg,
+            )
+
+        try:
+            try:
+                stream = await _iter(GenerateContentConfig(**config_kwargs))
+            except Exception as e:
+                if cache_name and "cache" in str(e).lower():
+                    logger.warning(f"[cache] stale cache {cache_name}; retrying without: {e}")
+                    self._invalidate_system_cache(system_prompt)
+                    config_kwargs.pop("cached_content", None)
+                    config_kwargs["system_instruction"] = system_prompt
+                    stream = await _iter(GenerateContentConfig(**config_kwargs))
+                else:
+                    raise
+
+            async for chunk in stream:
+                last_response = chunk
+                try:
+                    text = getattr(chunk, "text", None)
+                except Exception as chunk_err:
+                    logger.debug(f"Skipping unreadable stream chunk: {chunk_err}")
+                    continue
+                if text:
+                    parts.append(text)
+                    yield text
+        except Exception as e:
+            logger.error(f"Async streaming synthesis failed: {e}")
+            raise
+
+        full_text = "".join(parts)
+        elapsed = time.time() - synth_start
+
+        input_tokens = output_tokens = thinking_tokens = cached_tokens = 0
+        if last_response is not None and getattr(last_response, "usage_metadata", None):
+            um = last_response.usage_metadata
+            input_tokens = getattr(um, "prompt_token_count", 0) or 0
+            output_tokens = getattr(um, "candidates_token_count", 0) or 0
+            thinking_tokens = getattr(um, "thoughts_token_count", 0) or 0
+            cached_tokens = getattr(um, "cached_content_token_count", 0) or 0
+
+        cost_usd = _cost_usd(
+            self.model, input_tokens, output_tokens, thinking_tokens,
+            cached_tok=cached_tokens,
+        )
+
+        logger.info(
+            f"LLM [{self.model}] {elapsed:.2f}s stream(async) | {len(full_text)}ch | "
+            f"in={input_tokens} out={output_tokens} cached={cached_tokens} thoughts={thinking_tokens} | "
             f"${cost_usd:.6f} (chunks={len(chunks)}, ctx={context_chars}ch)"
         )
 

@@ -54,6 +54,12 @@ class PageIndexStrategy(RetrievalStrategy):
         filter_conditions: dict[str, Any] | None = None,
         collection_name: str | None = None,
     ) -> list[RetrievedChunk]:
+        # Reset navigator usage — summed across every document queried this turn.
+        self.last_nav_usage: dict[str, Any] = {
+            "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0,
+            "thinking_tokens": 0, "cost_usd": 0.0,
+        }
+
         if filter_conditions and "document_id" in filter_conditions:
             document_ids = [filter_conditions["document_id"]]
         else:
@@ -91,14 +97,18 @@ class PageIndexStrategy(RetrievalStrategy):
             language = tree_doc.get("language", "en")
             act_name = tree.get("document_title", doc_id)
 
-            sections = await asyncio.to_thread(
-                self.section_retriever.retrieve,
+            sections = await self.section_retriever.a_retrieve(
                 query=query,
                 tree=tree,
                 markdown_content=markdown,
                 language=language,
                 top_k=top_k,
             )
+            # Aggregate navigator LLM spend across every document retrieved.
+            nav_usage = getattr(self.section_retriever, "last_nav_usage", {}) or {}
+            for k in ("input_tokens", "output_tokens", "cached_tokens", "thinking_tokens"):
+                self.last_nav_usage[k] += int(nav_usage.get(k, 0) or 0)
+            self.last_nav_usage["cost_usd"] += float(nav_usage.get("cost_usd", 0.0) or 0.0)
 
             for idx, section in enumerate(sections):
                 page_range = section.get("page_range", [])

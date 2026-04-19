@@ -1,6 +1,5 @@
 """Follow-up question suggestions — best-effort, always off the critical path."""
 
-import asyncio
 import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -58,10 +57,8 @@ class FollowupService:
         prompt = _FOLLOWUP_PROMPT.format(query=query, answer=answer[:600])
 
         try:
-            raw, meta = await asyncio.to_thread(
-                self._llm.call,
-                prompt,
-                add_warning=False,
+            raw, meta = await self._llm.a_call(
+                prompt=prompt,
                 response_mime_type="application/json",
                 return_metadata=True,
             )
@@ -69,17 +66,8 @@ class FollowupService:
             logger.warning(f"Follow-ups LLM call failed: {e}")
             return FollowupsResult()
 
-        # The LLM service returns an error-shaped response object when retries
-        # are exhausted (e.g. 429). Detect and bail early with a clean log.
-        if isinstance(meta, dict) and meta.get("is_error"):
-            logger.warning(
-                f"Follow-ups LLM returned error: type={meta.get('error_type')}, "
-                f"text={raw[:120] if isinstance(raw, str) else raw!r}"
-            )
-            return FollowupsResult()
-
         try:
-            parsed = json.loads(raw if isinstance(raw, str) else raw[0])
+            parsed = json.loads(raw if isinstance(raw, str) else str(raw))
         except json.JSONDecodeError as e:
             logger.warning(
                 f"Follow-ups JSON parse failed: {e}; raw={raw!r}"
@@ -94,6 +82,6 @@ class FollowupService:
         logger.info(f"Follow-ups generated: {len(suggestions)} suggestions")
         return FollowupsResult(
             suggestions=suggestions,
-            cost_usd=(meta or {}).get("cost_usd") or 0.0,
-            tokens=(meta or {}).get("input_tokens", 0) + (meta or {}).get("output_tokens", 0),
+            cost_usd=float(meta.get("cost_usd", 0.0) or 0.0),
+            tokens=int(meta.get("input_tokens", 0) or 0) + int(meta.get("output_tokens", 0) or 0),
         )

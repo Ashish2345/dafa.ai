@@ -14,6 +14,15 @@ from app.services.retrieval.factory import RetrievalFactory
 class RetrievalService:
     """Resolves a strategy and runs a single retrieval call."""
 
+    def __init__(self) -> None:
+        # Navigator LLM usage from the most recent ``retrieve`` call. Populated
+        # from the underlying strategy so the orchestrator can credit the right
+        # amount to per-user billing.
+        self.last_nav_usage: Dict[str, Any] = {
+            "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0,
+            "thinking_tokens": 0, "cost_usd": 0.0,
+        }
+
     async def retrieve(
         self,
         query: str,
@@ -23,12 +32,14 @@ class RetrievalService:
         filter_conditions: Optional[Dict[str, Any]] = None,
     ) -> List[RetrievedChunk]:
         strategy = await RetrievalFactory.get_strategy(strategy_name)
-        return await strategy.retrieve(
+        chunks = await strategy.retrieve(
             query=query,
             top_k=top_k,
             filter_conditions=filter_conditions,
             collection_name=collection_name,
         )
+        self.last_nav_usage = dict(getattr(strategy, "last_nav_usage", {}) or self.last_nav_usage)
+        return chunks
 
     @staticmethod
     def unique_document_names(chunks: List[RetrievedChunk]) -> List[str]:
