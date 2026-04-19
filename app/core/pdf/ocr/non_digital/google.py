@@ -333,6 +333,33 @@ class GoogleVisionOCRBase(OCRBase):
         df = pd.DataFrame(data)
         return df
 
+    @staticmethod
+    def _normalize_coords_to_unit(
+        df: pd.DataFrame, image_width: int, image_height: int,
+    ) -> pd.DataFrame:
+        """Convert pixel-space bbox coords to 0-1 normalized.
+
+        Mirrors what ``DigitalOCR._words_to_df`` does at parse time. Without
+        this, downstream layers (markdown bbox extractor, highlight endpoint,
+        frontend overlay) see x/y values in image-pixel range and produce
+        out-of-range bboxes that don't line up with the rendered page image.
+
+        Args:
+            df: OCR DataFrame in pixel space.
+            image_width: Width in pixels of the image OCR was run against.
+            image_height: Height in pixels of the same image.
+        """
+        if df.empty or image_width <= 0 or image_height <= 0:
+            return df
+        df = df.copy()
+        for col in ("x0", "x2", "point_x0", "point_x1", "point_x2", "point_x3"):
+            if col in df.columns:
+                df[col] = df[col] / image_width
+        for col in ("y0", "y2", "point_y0", "point_y1", "point_y2", "point_y3"):
+            if col in df.columns:
+                df[col] = df[col] / image_height
+        return df
+
     def _apply_orientation_correction(
         self,
         image: np.ndarray,
@@ -532,6 +559,12 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
         """
         logger.info("Processing image with Google Vision OCR")
 
+        # Resolve image once so we have its dimensions for normalization,
+        # regardless of whether orientation correction needs them.
+        image_array = self._get_image_array(image)
+        final_h = image_array.shape[0] if image_array is not None else 0
+        final_w = image_array.shape[1] if image_array is not None else 0
+
         # Get raw response
         response = self.read_raw(image)
 
@@ -539,15 +572,18 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
         df = self._parse_response_to_df(response, page_index)
 
         if df.empty:
+            if image_array is not None:
+                del image_array
             return df
 
         # Apply orientation correction if enabled
-        if self.fix_orientation:
-            # Get image as numpy array for rotation
-            image_array = self._get_image_array(image)
-            if image_array is not None:
-                df, _, _ = self._apply_orientation_correction(image_array, df, response)
-                del image_array  # Free memory
+        if self.fix_orientation and image_array is not None:
+            df, rotated, _ = self._apply_orientation_correction(image_array, df, response)
+            if rotated is not None:
+                final_h, final_w = rotated.shape[:2]
+
+        if image_array is not None:
+            del image_array  # Free memory
 
         # Apply wordify to combine word parts
         df = self._wordify(df)
@@ -555,6 +591,9 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
         # Sort and reset lines if enabled
         if self.reset_lines_and_sort and not df.empty:
             df = sort_df(df)
+
+        # Normalize pixel coords to 0-1 (matches DigitalOCR behaviour).
+        df = self._normalize_coords_to_unit(df, final_w, final_h)
 
         return df[OCR_COLUMNS] if not df.empty else df
 
@@ -573,6 +612,7 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
 
         # Get page image (lazy loaded)
         image = page.to_image()
+        final_h, final_w = image.shape[:2]
 
         # Get raw response
         response = self.read_raw(image)
@@ -586,7 +626,9 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
 
         # Apply orientation correction if enabled
         if self.fix_orientation:
-            df, _, _ = self._apply_orientation_correction(image, df, response)
+            df, rotated, _ = self._apply_orientation_correction(image, df, response)
+            if rotated is not None:
+                final_h, final_w = rotated.shape[:2]
 
         # Apply wordify to combine word parts
         df = self._wordify(df)
@@ -594,6 +636,9 @@ class GoogleVisionOCR(GoogleVisionOCRBase):
         # Sort and reset lines if enabled
         if self.reset_lines_and_sort and not df.empty:
             df = sort_df(df)
+
+        # Normalize pixel coords to 0-1 (matches DigitalOCR behaviour).
+        df = self._normalize_coords_to_unit(df, final_w, final_h)
 
         # Free the image memory
         del image
@@ -736,6 +781,11 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
         """
         logger.info("Processing image with Google Vision OCR (async)")
 
+        # Resolve image dimensions up front for normalization at the end.
+        image_array = await to_thread(self._get_image_array, image)
+        final_h = image_array.shape[0] if image_array is not None else 0
+        final_w = image_array.shape[1] if image_array is not None else 0
+
         # Get raw response asynchronously
         response = await self.read_raw_async(image)
 
@@ -743,16 +793,20 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
         df = await to_thread(self._parse_response_to_df, response, page_index)
 
         if df.empty:
+            if image_array is not None:
+                del image_array
             return df
 
         # Apply orientation correction if enabled
-        if self.fix_orientation:
-            image_array = await to_thread(self._get_image_array, image)
-            if image_array is not None:
-                df, _, _ = await to_thread(
-                    self._apply_orientation_correction, image_array, df, response
-                )
-                del image_array
+        if self.fix_orientation and image_array is not None:
+            df, rotated, _ = await to_thread(
+                self._apply_orientation_correction, image_array, df, response
+            )
+            if rotated is not None:
+                final_h, final_w = rotated.shape[:2]
+
+        if image_array is not None:
+            del image_array
 
         # Apply wordify
         df = await to_thread(self._wordify, df)
@@ -760,6 +814,9 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
         # Sort and reset lines if enabled
         if self.reset_lines_and_sort and not df.empty:
             df = await to_thread(sort_df, df)
+
+        # Normalize pixel coords to 0-1 (matches DigitalOCR behaviour).
+        df = await to_thread(self._normalize_coords_to_unit, df, final_w, final_h)
 
         return df[OCR_COLUMNS] if not df.empty else df
 
@@ -778,6 +835,7 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
 
         # Get page image in executor (may involve PDF rendering)
         image = await to_thread(page.to_image)
+        final_h, final_w = image.shape[:2]
 
         # Get raw response asynchronously
         response = await self.read_raw_async(image)
@@ -792,7 +850,11 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
 
         # Apply orientation correction if enabled
         if self.fix_orientation:
-            df, _, _ = await to_thread(self._apply_orientation_correction, image, df, response)
+            df, rotated, _ = await to_thread(
+                self._apply_orientation_correction, image, df, response
+            )
+            if rotated is not None:
+                final_h, final_w = rotated.shape[:2]
 
         # Apply wordify
         df = await to_thread(self._wordify, df)
@@ -800,6 +862,9 @@ class GoogleVisionOCRAsync(GoogleVisionOCRBase):
         # Sort and reset lines if enabled
         if self.reset_lines_and_sort and not df.empty:
             df = await to_thread(sort_df, df)
+
+        # Normalize pixel coords to 0-1 (matches DigitalOCR behaviour).
+        df = await to_thread(self._normalize_coords_to_unit, df, final_w, final_h)
 
         # Free memory
         del image

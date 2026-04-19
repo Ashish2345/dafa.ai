@@ -56,6 +56,8 @@ class ChatMessage(BaseModel):
     sources: Optional[list[dict[str, Any]]] = None
     confidence_level: Optional[str] = Field(default=None, alias="confidenceLevel")
     warnings: Optional[list[str]] = None
+    follow_ups: Optional[list[str]] = Field(default=None, alias="followUps")
+    chunks: Optional[list[dict[str, Any]]] = None
 
     model_config = {"populate_by_name": True}
 

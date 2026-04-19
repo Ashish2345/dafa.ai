@@ -33,8 +33,13 @@ class PDFParserConfig(ParserConfig):
     """Configuration for PDF parser."""
 
     ocr_enabled: bool = Field(
-        default=True,
-        description="Enable OCR for scanned PDFs",
+        default=False,
+        description=(
+            "Force the non-digital OCR path regardless of whether the PDF has "
+            "extractable text. Leave False to auto-detect (digital PDFs use "
+            "embedded text; scanned PDFs fall through to OCR). Set True — or "
+            "use ``force_ocr`` — when embedded text is scrambled."
+        ),
         json_schema_extra={"request_param": RequestParam.OCR_ENABLED},
     )
     ocr_provider: str = Field(
@@ -58,6 +63,14 @@ class PDFParserConfig(ParserConfig):
         default=False,
         description="Extract embedded images",
         json_schema_extra={"request_param": RequestParam.EXTRACT_IMAGES},
+    )
+    force_ocr: bool = Field(
+        default=False,
+        description=(
+            "Force the non-digital OCR path even when the PDF has embedded text. "
+            "Required for PDFs with broken ToUnicode CMaps (e.g. many Nepali PDFs) "
+            "where direct text extraction produces scrambled characters."
+        ),
     )
 
 

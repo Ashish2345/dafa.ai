@@ -22,7 +22,7 @@ from app.db.repositories.document_repository import DocumentRepository
 from app.db.repositories.file_storage import FileStorageRepository
 from app.db.repositories.ocr_bbox_repository import OcrBboxRepository
 from app.db.repositories.page_index_repository import PageIndexRepository
-from app.models.schemas import PageIndexTreeUpload
+from app.models.schemas import PageIndexTreeUpload, ParsedContentUpload
 from app.services.ingestion.pipeline import IngestionPipeline
 from app.services.ingestion.processing import DocumentProcessor, MetadataExtractor
 from app.services.parsers.factory import ParserFactory
@@ -35,6 +35,87 @@ async def get_page_index_repository() -> PageIndexRepository:
     """FastAPI dependency that returns a PageIndexRepository backed by the app database."""
     db = await get_database()
     return PageIndexRepository(db)
+
+
+async def _run_parsed_ingestion_background(
+    document_id: str,
+    filename: str,
+    parsed_payload: Dict[str, Any],
+    form_data: ParseFormData,
+    custom_tree: Optional[dict] = None,
+    pdf_path: Optional[str] = None,
+) -> None:
+    """Background task: ingest directly from a pre-parsed JSON dump.
+
+    Skips OCR + markdown conversion. Writes the markdown, word bboxes, tree,
+    and document record straight to Mongo. When ``pdf_path`` is supplied
+    (the client also uploaded the original PDF alongside the parsed JSON),
+    the PDF and rendered page images are persisted to GridFS so the frontend
+    can still show the document viewer with citation highlights.
+    """
+    try:
+        db = await get_database()
+        doc_repo = DocumentRepository(db)
+
+        async def on_progress(step: str) -> None:
+            await doc_repo.update_status(document_id, "processing", step=step)
+
+        parsed_section = parsed_payload.get("parsed") or {}
+        raw_section = parsed_payload.get("raw") or {}
+
+        markdown = parsed_section.get("markdown", "") or ""
+        parsed_lang = (parsed_section.get("language") or "").strip().lower() or None
+
+        tree_lang = None
+        if custom_tree is not None:
+            raw_lang = custom_tree.get("language")
+            if isinstance(raw_lang, str):
+                tree_lang = raw_lang.strip().lower() or None
+        form_lang = (getattr(form_data, "language", "") or "").strip().lower() or None
+        language = tree_lang or parsed_lang or form_lang or "en"
+
+        strategy_name = getattr(form_data, "strategy", None)
+        strategy = await RetrievalFactory.get_strategy(strategy_name)
+
+        pipeline = IngestionPipeline(
+            processor=DocumentProcessor(),
+            metadata_extractor=MetadataExtractor(language=language),
+            document_repo=doc_repo,
+            ocr_bbox_repo=OcrBboxRepository(db),
+            file_storage=FileStorageRepository(db),
+        )
+
+        result = await pipeline.run_from_parsed_content(
+            document_id=document_id,
+            filename=filename,
+            markdown=markdown,
+            word_bboxes=raw_section.get("pages") or [],
+            strategy=strategy,
+            language=language,
+            on_progress=on_progress,
+            custom_tree=custom_tree,
+            pdf_path=pdf_path,
+        )
+
+        if result.get("status") == "failed":
+            await doc_repo.update_status(
+                document_id, "failed", step="Failed", error=result.get("error", "Unknown error")
+            )
+        else:
+            logger.info(f"Parsed-content ingestion complete: {document_id}")
+
+    except Exception as e:
+        logger.error(f"Parsed-content ingestion failed for {document_id}: {e}")
+        try:
+            db = await get_database()
+            await DocumentRepository(db).update_status(
+                document_id, "failed", step="Failed", error=str(e)
+            )
+        except Exception:
+            pass
+    finally:
+        if pdf_path:
+            Path(pdf_path).unlink(missing_ok=True)
 
 
 async def _run_ingestion_background(
@@ -77,6 +158,14 @@ async def _run_ingestion_background(
         if language == "ne" and not form_data.ocr_languages:
             form_dict["ocr_languages"] = ["ne"]
         request_config = RequestConfigBuilder.from_form_data(form_dict)
+
+        # Nepali PDFs: embedded text layer typically has broken ToUnicode CMaps,
+        # so DigitalOCR produces scrambled characters. Force the non-digital
+        # path and default to Google Vision (matches /parse behavior).
+        if language == "ne":
+            request_config.pdf_config.force_ocr = True
+            if not form_data.ocr_provider:
+                request_config.pdf_config.ocr_provider = "google"
 
         pipeline = IngestionPipeline(
             parser_factory=ParserFactory(request_config),
@@ -128,6 +217,16 @@ async def upload_document(
         description=(
             "Optional user-supplied page-index tree JSON. When provided, the "
             "pipeline skips LLM tree generation and uses this tree instead. "
+            "Only valid with strategy='page_index'."
+        ),
+    ),
+    parsed_file: Optional[UploadFile] = File(
+        None,
+        description=(
+            "Optional pre-parsed content JSON (output of POST /documents/parse). "
+            "When provided, the pipeline SKIPS OCR + markdown conversion entirely "
+            "and persists the supplied markdown + word bboxes straight to Mongo. "
+            "Combine with page_index_file to also skip LLM tree generation. "
             "Only valid with strategy='page_index'."
         ),
     ),
@@ -205,7 +304,94 @@ async def upload_document(
         # because PageIndexTreeUpload/PageIndexNodeUpload use extra='allow').
         custom_tree = tree_model.model_dump()
 
+    # ------------------------------------------------------------------
+    # Pre-parsed content: skip OCR + markdown conversion when supplied.
+    # ------------------------------------------------------------------
+    parsed_payload: Optional[Dict[str, Any]] = None
+    if parsed_file is not None and getattr(parsed_file, "filename", ""):
+        strategy_name = (getattr(form_data, "strategy", None) or "page_index").lower()
+        if strategy_name == "vector":
+            raise HTTPException(
+                status_code=400,
+                detail="parsed_file is only valid with strategy='page_index'.",
+            )
+
+        raw = await parsed_file.read()
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"parsed_file is not valid JSON: {exc.msg} "
+                    f"at line {exc.lineno} col {exc.colno}"
+                ),
+            ) from exc
+
+        try:
+            model = ParsedContentUpload.model_validate(decoded)
+        except ValidationError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "parsed_file failed schema validation",
+                    "errors": exc.errors(),
+                },
+            ) from exc
+        parsed_payload = model.model_dump()
+
     try:
+        if parsed_payload is not None:
+            # Pre-parsed ingestion path — skip OCR/markdown, but still save the
+            # original PDF (+ rendered page images) when the caller supplies one.
+            # Without the PDF the frontend won't have an image to draw citation
+            # highlights on.
+            pdf_path: Optional[str] = None
+            if (file and file.filename) or form_data.file_url:
+                from app.services.download import FileHandler
+
+                handler = FileHandler()
+                pdf_path = await handler.process(
+                    file_type=form_data.file_type,
+                    file=file,
+                    file_url=form_data.file_url,
+                )
+
+            document_id = str(uuid.uuid4())
+            filename = (
+                original_filename
+                or (Path(pdf_path).name if pdf_path else None)
+                or getattr(parsed_file, "filename", None)
+                or f"{document_id}.json"
+            )
+
+            db = await get_database()
+            await DocumentRepository(db).save_initial(
+                document_id, filename, category=form_data.category, title=form_data.title,
+            )
+
+            background_tasks.add_task(
+                _run_parsed_ingestion_background,
+                document_id,
+                filename,
+                parsed_payload,
+                form_data,
+                custom_tree,
+                pdf_path,
+            )
+
+            logger.info(
+                f"Parsed-content ingestion queued: {document_id} ({filename}, "
+                f"pages={len((parsed_payload.get('raw') or {}).get('pages') or [])}, "
+                f"pdf={'yes' if pdf_path else 'no'})"
+            )
+            return {
+                "document_id": document_id,
+                "filename": filename,
+                "status": "processing",
+                "message": "Ingestion started. Poll GET /documents/{document_id} for progress.",
+            }
+
         from app.services.download import FileHandler
 
         handler = FileHandler()
@@ -251,6 +437,129 @@ async def upload_document(
             error_code="E_UPLOAD_FAILED",
             message=str(e),
         ) from e
+
+
+@router.post("/parse", summary="Parse a document and write parsed + raw JSON to disk (no DB save)")
+async def parse_document(
+    file: Optional[UploadFile] = File(None),
+    form_data: ParseFormData = Depends(ParseFormData.as_form()),
+    current_user: dict = Depends(get_current_user),
+):
+    """Dry-run parse: run OCR + markdown conversion and dump both layers to a
+    local JSON file under ``docs/parsed/``. Returns only the written path —
+    the full content is too large to ship over HTTP comfortably.
+
+    Output file shape mirrors the DB collections exactly:
+
+    * ``parsed.markdown``  — matches ``page_index_content.markdown``
+    * ``parsed.language``  — matches ``page_index_trees.language``
+    * ``raw.pages``        — list of ``{page, words}`` objects, each matching
+                             one ``page_ocr_bboxes`` document (minus the
+                             auto-generated ``document_id``/timestamps).
+    """
+    from datetime import datetime
+    import re as _re
+
+    from app.services.download import FileHandler
+    from app.services.ingestion.service import IngestionService
+    from app.services.processing.markdown import DocumentProcessor as MdProcessor
+
+    handler = FileHandler()
+    file_path = await handler.process(
+        file_type=form_data.file_type,
+        file=file,
+        file_url=form_data.file_url,
+    )
+
+    try:
+        language = (getattr(form_data, "language", "") or "en").strip().lower() or "en"
+        form_dict = form_data.model_dump()
+        form_dict["language"] = language
+        if language == "ne" and not form_data.ocr_languages:
+            form_dict["ocr_languages"] = ["ne"]
+        request_config = RequestConfigBuilder.from_form_data(form_dict)
+
+        parser_factory = ParserFactory(request_config)
+        parsed = await parser_factory.parse(str(file_path))
+
+        ingestion_service = IngestionService()
+        original_stem = (
+            Path(file.filename).stem if file and file.filename
+            else (Path(file_path).stem if file_path else "uploaded")
+        )
+        gathered = ingestion_service.gather_document_data(
+            parsed_response=parsed, document_name=original_stem,
+        )
+        if gathered.get("status") != "success":
+            raise AppException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                error_code="E_PARSE_FAILED",
+                message=gathered.get("error", "Failed to gather parsed data"),
+            )
+
+        markdown_result = MdProcessor().process_to_markdown(
+            raw_ocr=gathered.get("raw_ocr", []),
+            page_scalars=gathered.get("page_scalars", []),
+            page_images=gathered.get("page_images", []),
+        )
+
+        # Defensive cleanup — strip any line-number artifacts (``-> N<-``) the
+        # OCR processor may have left behind in the markdown. The per-page
+        # strip in DocumentProcessor is the primary barrier; this is a safety
+        # net so the dumped JSON is always clean regardless of upstream bugs.
+        from app.services.ingestion.pipeline import _strip_line_markers
+
+        raw_markdown = markdown_result.get("markdown", "") or ""
+        cleaned_markdown = _strip_line_markers(raw_markdown)
+
+        payload = {
+            "parsed": {
+                "markdown": cleaned_markdown,
+                "language": language,
+            },
+            "raw": {
+                "pages": markdown_result.get("word_bboxes", []) or [],
+                "page_count": len(markdown_result.get("word_bboxes", []) or []),
+            },
+        }
+
+        # Write to ./docs/parsed/<stem>_<timestamp>.json. The filesystem is the
+        # app's process CWD (backend root), so this sits alongside the curated
+        # fixture JSONs in ``docs/`` and is easy to inspect / diff locally.
+        safe_stem = _re.sub(r"[^\w\-.]+", "_", original_stem)[:80] or "parsed"
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_dir = Path("docs") / "parsed"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"{safe_stem}_{stamp}.json"
+        out_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        logger.info(
+            f"Parse-only result written: {out_path} "
+            f"(markdown={len(payload['parsed']['markdown'])} chars, "
+            f"pages={payload['raw']['page_count']})"
+        )
+
+        return {
+            "saved_to": str(out_path),
+            "markdown_chars": len(payload["parsed"]["markdown"]),
+            "page_count": payload["raw"]["page_count"],
+            "language": language,
+        }
+
+    except AppException:
+        raise
+    except Exception as e:
+        logger.error(f"Parse-only request failed: {e}")
+        raise AppException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_code="E_PARSE_FAILED",
+            message=str(e),
+        ) from e
+    finally:
+        Path(file_path).unlink(missing_ok=True)
 
 
 @router.get("", summary="List all documents")

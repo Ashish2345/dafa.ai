@@ -168,6 +168,12 @@ class PageIndexNodeUpload(BaseModel):
     are intentionally *not* present on this model — they are ignored/overwritten
     by the ingestion pipeline even if supplied.
 
+    Optional ``start_text`` / ``end_text`` fields let the user specify text
+    anchors (e.g. the first and last few words of the section).  At ingestion
+    the system searches for these in the OCR markdown to compute aligned
+    ``start_char`` / ``end_char``, giving precise section boundaries for
+    highlighting and text extraction.
+
     Extra user-defined fields (e.g. ``keywords``, ``tags``) are allowed and
     preserved in the saved tree so downstream tooling can use them.
     """
@@ -179,6 +185,8 @@ class PageIndexNodeUpload(BaseModel):
     summary: str = Field(default="", description="Short summary; may be empty")
     page_range: list[int] = Field(..., description="[start_page, end_page], both 1-indexed")
     children: list["PageIndexNodeUpload"] = Field(default_factory=list)
+    start_text: str = Field(default="", description="First few words of the section text — used to locate the section start in OCR markdown")
+    end_text: str = Field(default="", description="Last few words of the section text — used to locate the section end in OCR markdown")
 
     @field_validator("page_range")
     @classmethod
@@ -204,4 +212,97 @@ class PageIndexTreeUpload(BaseModel):
 
 
 PageIndexNodeUpload.model_rebuild()
+
+
+# ---------------------------------------------------------------------------
+# Pre-parsed content upload — the dump produced by POST /documents/parse.
+# When the client supplies this file at upload time, the pipeline skips
+# OCR + markdown conversion and persists the supplied layers as-is.
+# ---------------------------------------------------------------------------
+
+
+class ParsedPageWord(BaseModel):
+    """One word with normalized 0-1 coordinates, matching page_ocr_bboxes."""
+
+    model_config = ConfigDict(extra="allow")
+
+    text: str
+    x0: float
+    y0: float
+    x2: float
+    y2: float
+    char_offset: int = Field(default=0, ge=0)
+
+
+class ParsedPage(BaseModel):
+    """One page worth of OCR words — mirrors one row in page_ocr_bboxes."""
+
+    page: int = Field(..., ge=1)
+    words: List[ParsedPageWord] = Field(default_factory=list)
+
+
+class ParsedContentLayer(BaseModel):
+    markdown: str = Field(..., min_length=1)
+    language: str = Field(default="en")
+
+
+class ParsedRawLayer(BaseModel):
+    pages: List[ParsedPage] = Field(default_factory=list)
+    page_count: Optional[int] = None
+
+
+class ParsedContentUpload(BaseModel):
+    """Full parsed-content payload produced by ``POST /documents/parse``."""
+
+    model_config = ConfigDict(extra="allow")
+
+    parsed: ParsedContentLayer
+    raw: ParsedRawLayer = Field(default_factory=ParsedRawLayer)
+
+
+# ---------------------------------------------------------------------------
+# Query endpoint models — used by both POST /query and POST /query/stream.
+# ---------------------------------------------------------------------------
+
+
+class ConversationMessage(BaseModel):
+    """One prior turn sent by the client for follow-up context."""
+
+    role: str
+    content: str
+
+
+class QueryRequest(BaseModel):
+    """Non-streaming query request."""
+
+    query: str = Field(..., description="User query/question", min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
+    use_llm: bool = Field(default=True)
+    strategy: Optional[str] = Field(
+        default=None, description="'page_index' or 'vector'. Defaults to server setting."
+    )
+    collection_name: Optional[str] = Field(default=None)
+    filter_conditions: Optional[Dict[str, Any]] = Field(default=None)
+
+
+class StreamQueryRequest(QueryRequest):
+    """Streaming query request — adds conversation context + language override."""
+
+    response_language: Optional[str] = Field(
+        default=None,
+        description="Response language: 'en' or 'ne'. When omitted, auto-detected from content.",
+    )
+    conversation_history: Optional[List[ConversationMessage]] = Field(
+        default=None, description="Last few messages for follow-up context."
+    )
+
+
+class QueryResponse(BaseModel):
+    """Non-streaming query response."""
+
+    query: str
+    answer: str
+    chunks: List[Dict[str, Any]] = Field(default_factory=list)
+    sources: List[Dict[str, Any]] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 

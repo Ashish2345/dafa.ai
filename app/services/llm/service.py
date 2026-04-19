@@ -215,12 +215,6 @@ class LLMService:
                 config_kwargs["response_mime_type"] = response_mime_type
             config = GenerateContentConfig(**config_kwargs)
 
-            logger.debug(
-                f"LLM call config: max_output_tokens={actual_max_tokens}, "
-                f"temperature={temperature or self.temperature}, "
-                f"response_mime_type={response_mime_type}"
-            )
-
             # Call API
             response: GenerateContentResponse = self.client.models.generate_content(
                 model=self.model,
@@ -262,11 +256,13 @@ class LLMService:
             output_tokens = None
             prompt_tokens = None
             thoughts_tokens = None
+            cached_tokens = None
             if hasattr(response, "usage_metadata"):
                 um = response.usage_metadata
                 output_tokens = getattr(um, "candidates_token_count", None)
                 prompt_tokens = getattr(um, "prompt_token_count", None)
                 thoughts_tokens = getattr(um, "thoughts_token_count", None)
+                cached_tokens = getattr(um, "cached_content_token_count", None)
 
             # Compute estimated cost (treats None as 0 for missing fields)
             call_cost_usd = _cost_usd(
@@ -276,14 +272,6 @@ class LLMService:
                 thoughts_tokens or 0,
             )
 
-            logger.info(
-                f"LLM call successful: {response_length} chars, "
-                f"tokens in={prompt_tokens} out={output_tokens} thoughts={thoughts_tokens}, "
-                f"cost=${call_cost_usd:.6f} ({self.model}), "
-                f"finish_reason: {finish_reason}, "
-                f"max_tokens: {actual_max_tokens}"
-            )
-            
             # Validate and sanitize response
             is_truncated = finish_reason == "MAX_TOKENS"
             sanitized_text, response_metadata = self.response_handler.validate_and_sanitize(
@@ -309,19 +297,24 @@ class LLMService:
                 add_warning=add_warning,
             )
             
-            # Log completion status
+            elapsed = response_metadata.get("processing_time", 0) or 0.0
             if is_truncated:
                 logger.warning(
-                    f"Response TRUNCATED: {response_length} chars, "
-                    f"{output_tokens}/{actual_max_tokens} tokens used"
+                    f"LLM [{self.model}] {elapsed:.2f}s TRUNCATED "
+                    f"{output_tokens}/{actual_max_tokens} tok, {response_length}ch, "
+                    f"cost=${call_cost_usd:.6f}"
                 )
             elif not response_metadata.get("is_complete"):
-                logger.warning(f"Response may be incomplete: {response_length} chars")
+                logger.warning(
+                    f"LLM [{self.model}] {elapsed:.2f}s incomplete "
+                    f"{response_length}ch, cost=${call_cost_usd:.6f}"
+                )
             else:
                 logger.info(
-                    f"Response complete: {response_length} chars, "
-                    f"{output_tokens} tokens, "
-                    f"{response_metadata.get('processing_time', 0):.2f}s"
+                    f"LLM [{self.model}] {elapsed:.2f}s | {response_length}ch | "
+                    f"in={prompt_tokens} out={output_tokens} "
+                    f"cached={cached_tokens or 0} thoughts={thoughts_tokens or 0} | "
+                    f"${call_cost_usd:.6f}"
                 )
             
             if return_metadata:
@@ -411,24 +404,17 @@ class LLMService:
             logger.error(f"Error calling LLM with messages: {e}")
             raise
 
-    def synthesize(
+    def _build_synthesis_prompt(
         self,
         query: str,
         chunks: list,
         language: str = "en",
-    ) -> str:
-        """
-        Synthesize an answer from retrieved chunks.
+    ) -> Tuple[str, str, int]:
+        """Build the system + user prompt for answer synthesis.
 
-        Args:
-            query: User question.
-            chunks: List of RetrievedChunk objects.
-            language: Answer language.
-
-        Returns:
-            Synthesized answer text.
+        Returns (system_prompt, user_prompt, context_chars).
         """
-        from app.prompts.new_flow import answer_synthesis as answer_prompts
+        from app.prompts.factory import get_prompts
 
         context_parts = []
         for idx, chunk in enumerate(chunks, 1):
@@ -456,13 +442,36 @@ class LLMService:
             first_source = chunks[0].source if hasattr(chunks[0], "source") else chunks[0].get("source", {})
             act_name = first_source.get("document_name", "Finance Act")
 
-        system_prompt, user_prompt_template = answer_prompts.get_prompts(language)
+        system_prompt, user_prompt_template = get_prompts("page_index", "answer_synthesis", language)
         user_prompt = user_prompt_template.format(
             act_name=act_name,
             sections=context,
             query=query,
         )
+        return system_prompt, user_prompt, len(context)
 
+    def synthesize(
+        self,
+        query: str,
+        chunks: list,
+        language: str = "en",
+    ) -> str:
+        """
+        Synthesize an answer from retrieved chunks.
+
+        Args:
+            query: User question.
+            chunks: List of RetrievedChunk objects.
+            language: Answer language.
+
+        Returns:
+            Synthesized answer text.
+        """
+        system_prompt, user_prompt, context_chars = self._build_synthesis_prompt(
+            query, chunks, language
+        )
+
+        synth_start = time.time()
         result, metadata = self.call(
             prompt=user_prompt,
             system_instruction=system_prompt,
@@ -470,7 +479,103 @@ class LLMService:
             max_tokens=8192,
             return_metadata=True,
         )
+        logger.info(
+            f"[latency] synthesis LLM call: {time.time() - synth_start:.2f}s "
+            f"(chunks={len(chunks)}, context_chars={context_chars})"
+        )
 
         # Attach cost info for caller to record
         text = result if isinstance(result, str) else result
         return text, metadata
+
+    def stream_synthesize(
+        self,
+        query: str,
+        chunks: list,
+        language: str = "en",
+    ):
+        """Synchronous generator yielding synthesis text chunks as they arrive.
+
+        Callers bridge this to async by pulling one chunk at a time via
+        ``asyncio.to_thread(next, gen, sentinel)``.
+
+        Yields text strings. The final item is a dict
+        ``{"__done__": True, "full_text": ..., "metadata": {...}}`` with
+        aggregated metadata (cost, tokens, latency) — letting the caller
+        record usage without re-parsing the SDK response object.
+        """
+        if not self.client:
+            raise ValueError("Gemini API key not configured. Set GEMINI_API_KEY in .env file.")
+
+        system_prompt, user_prompt, context_chars = self._build_synthesis_prompt(
+            query, chunks, language
+        )
+
+        config = GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.2,
+            max_output_tokens=8192,
+        )
+        messages = [{"role": "user", "parts": [{"text": user_prompt}]}]
+
+        synth_start = time.time()
+        parts: list[str] = []
+        last_response = None
+
+        try:
+            stream = self.client.models.generate_content_stream(
+                model=self.model,
+                contents=messages,
+                config=config,
+            )
+            for chunk in stream:
+                last_response = chunk
+                # ``chunk.text`` is lazy-parsed by the SDK and can raise on
+                # malformed intermediate chunks (empty candidates, safety
+                # filter, transient protocol hiccups). Skip the bad chunk
+                # rather than abort the whole stream — the next chunk almost
+                # always recovers, and at worst we still have the last_response
+                # to extract aggregate text from.
+                try:
+                    text = getattr(chunk, "text", None)
+                except Exception as chunk_err:
+                    logger.debug(f"Skipping unreadable stream chunk: {chunk_err}")
+                    continue
+                if text:
+                    parts.append(text)
+                    yield text
+        except Exception as e:
+            logger.error(f"Streaming synthesis failed: {e}")
+            raise
+
+        full_text = "".join(parts)
+        elapsed = time.time() - synth_start
+
+        # Aggregate usage/cost from the final response object
+        input_tokens = output_tokens = thinking_tokens = 0
+        if last_response is not None and getattr(last_response, "usage_metadata", None):
+            um = last_response.usage_metadata
+            input_tokens = getattr(um, "prompt_token_count", 0) or 0
+            output_tokens = getattr(um, "candidates_token_count", 0) or 0
+            thinking_tokens = getattr(um, "thoughts_token_count", 0) or 0
+
+        cost_usd = _cost_usd(self.model, input_tokens, output_tokens, thinking_tokens)
+
+        logger.info(
+            f"LLM [{self.model}] {elapsed:.2f}s stream | {len(full_text)}ch | "
+            f"in={input_tokens} out={output_tokens} thoughts={thinking_tokens} | "
+            f"${cost_usd:.6f} (chunks={len(chunks)}, ctx={context_chars}ch)"
+        )
+
+        yield {
+            "__done__": True,
+            "full_text": full_text,
+            "metadata": {
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "thinking_tokens": thinking_tokens,
+                "cost_usd": cost_usd,
+                "elapsed_seconds": elapsed,
+                "model": self.model,
+            },
+        }

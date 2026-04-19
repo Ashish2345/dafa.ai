@@ -13,7 +13,7 @@ from typing import Any
 
 from loguru import logger
 
-from app.prompts.new_flow import tree_builder as prompts
+from app.prompts.factory import get_prompts
 from app.services.llm import LLMService
 
 # Each chunk sent to the LLM.
@@ -22,6 +22,20 @@ from app.services.llm import LLMService
 # Gemini 2.5 Flash max output is 65 536 tokens.
 _CHUNK_CHARS = 350_000
 _MAX_OUTPUT_TOKENS = 65_536
+
+
+class _FuzzyMatch:
+    """Lightweight match object returned by fuzzy search (same interface as re.Match)."""
+
+    def __init__(self, start: int, end: int):
+        self._start = start
+        self._end = end
+
+    def start(self) -> int:
+        return self._start
+
+    def end(self) -> int:
+        return self._end
 
 
 class TreeBuilder:
@@ -85,7 +99,7 @@ class TreeBuilder:
 
     def build_chunk(self, content: str, language: str) -> dict:
         """Call the LLM for a single chunk and return a parsed tree dict."""
-        system_prompt, user_prompt_template = prompts.get_prompts(language)
+        system_prompt, user_prompt_template = get_prompts("page_index", "tree_builder", language)
         user_prompt = user_prompt_template.format(markdown_content=content)
         response = self.llm.call(
             prompt=user_prompt,
@@ -137,12 +151,22 @@ class TreeBuilder:
 
             page_bboxes = []
 
+            # When page_range is available, use it to constrain which pages
+            # char-offset overlap can match. This prevents misaligned offsets
+            # (e.g. from a custom tree built against a different OCR run)
+            # from producing bboxes on the wrong pages.
+            pr_start = page_range[0] if len(page_range) >= 1 else None
+            pr_end = page_range[-1] if len(page_range) >= 2 else pr_start
+
             if node_start >= 0 and node_end >= 0:
                 # Primary: use character offsets for proportional bbox slicing
                 for entry in page_bbox_map:
                     entry_start = entry["start_char"]
                     entry_end = entry["end_char"]
                     if entry_start < node_end and entry_end > node_start:
+                        # Skip pages outside the node's page_range
+                        if pr_start is not None and (entry["page"] < pr_start or entry["page"] > pr_end):
+                            continue
                         node_start_in_page = max(node_start, entry_start)
                         node_end_in_page = min(node_end, entry_end)
                         page_char_len = entry_end - entry_start
@@ -201,17 +225,16 @@ class TreeBuilder:
     ) -> list[dict]:
         """Record start_char/end_char for each node so text extraction is a simple slice.
 
-        Two-pass approach:
-          Pass 1: Assign start_char to every node by searching for its title in
-                  the markdown, constrained to the node's page_range region.
-          Pass 2: Collect all assigned start_chars as boundary positions, then
-                  set each node's end_char to the next boundary (or EOF).
+        Multi-pass approach:
+          Pass 1: Assign start_char — uses ``start_text`` (text anchor) if
+                  provided, otherwise falls back to title matching.
+          Pass 2: Assign end_char — defaults to the next node's start_char.
+          Pass 3: Override end_char with ``end_text`` matches where provided,
+                  giving precise, independent section boundaries.
 
         Returns:
             A list of ``{"nodeId": ..., "title": ...}`` dicts for every node
-            whose title was NOT found in the markdown (``start_char == -1``).
-            The LLM-generated path ignores the return value; the custom-tree
-            path uses it to populate ``ingest_warnings``.
+            whose start position was NOT found in the markdown.
         """
         # Build page → char range lookup for constraining searches
         page_char_ranges: dict[int, tuple[int, int]] = {}
@@ -219,14 +242,16 @@ class TreeBuilder:
             for entry in page_bbox_map:
                 page_char_ranges[entry["page"]] = (entry["start_char"], entry["end_char"])
 
-        # Pass 1: assign start_char to each node
+        # Pass 1: assign start_char (uses start_text or title)
         self._assign_start_chars(nodes, markdown, page_char_ranges)
 
-        # Pass 2: collect all start positions, then assign end_char
+        # Pass 2: assign end_char = next node's start_char (default boundaries)
         all_starts = sorted(set(self._collect_start_chars(nodes)))
         self._assign_end_chars(nodes, markdown, all_starts)
+        # Pass 3: override end_char with end_text matches where provided
+        self._assign_end_text_overrides(nodes, markdown, page_char_ranges)
 
-        # Pass 3: collect nodeIds whose titles were not found
+        # Pass 4: collect nodeIds whose titles were not found
         return self._collect_unmatched(nodes)
 
     @staticmethod
@@ -243,16 +268,20 @@ class TreeBuilder:
     def _get_page_region(
         self, node: dict, page_char_ranges: dict[int, tuple[int, int]], md_len: int,
     ) -> tuple[int, int]:
-        """Return (region_start, region_end) in the markdown for this node's page_range."""
+        """Return (region_start, region_end) in the markdown for this node's page_range.
+
+        Expands by 1 page on each side to catch content that bleeds across
+        page boundaries (start_text on previous page, end_text on next page).
+        """
         page_range = node.get("page_range", [])
         if not page_char_ranges or not page_range:
             return 0, md_len
         first_page = page_range[0]
         last_page = page_range[-1] if len(page_range) >= 2 else first_page
-        # Clamp to valid page range
+        # Expand by 1 page on each side for boundary accuracy
         max_page = max(page_char_ranges.keys()) if page_char_ranges else 0
-        first_page = max(1, first_page)
-        last_page = min(last_page, max_page)
+        first_page = max(1, first_page - 1)
+        last_page = min(last_page + 1, max_page)
         if first_page > last_page:
             return 0, md_len
         starts, ends = [], []
@@ -265,33 +294,244 @@ class TreeBuilder:
             return min(starts), max(ends)
         return 0, md_len
 
+    @staticmethod
+    def _sanitize_anchor_text(text: str) -> str:
+        """Strip markdown processing artifacts from start_text/end_text."""
+        # Remove HTML comments like <!-- Page 83 -->
+        text = re.sub(r'<!--.*?-->', '', text)
+        # Collapse whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+
+    @staticmethod
+    def _strip_punctuation(text: str) -> str:
+        """Remove Devanagari + Latin punctuation that drifts between tree
+        anchors and OCR output.
+
+        Tree-curated anchors typically miss visarga (ः), danda (।), and
+        Latin parens — while OCR captures them. Stripping both sides before
+        comparison lets exact match succeed for these near-identical pairs.
+        """
+        # Devanagari punctuation
+        text = re.sub(r"[ः।॥]", "", text)
+        # Latin punctuation that varies between hand-curated and OCR text
+        text = re.sub(r"[(){}\[\].,:;\"'`]", "", text)
+        # Collapse whitespace introduced by the strips
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    @staticmethod
+    def _find_in_original(
+        original: str, stripped_anchor: str, stripped_pos: int,
+    ) -> int | None:
+        """Map a position in the punctuation-stripped string back to the
+        position in the original string.
+
+        Walks both strings in lockstep: skips characters in ``original`` that
+        would have been stripped, advances together for kept characters until
+        we reach ``stripped_pos`` characters of kept content. Returns the
+        corresponding offset in the original.
+        """
+        # Re-derive the strip predicate so we stay consistent with
+        # _strip_punctuation.
+        def _is_strippable(ch: str) -> bool:
+            return ch in "ः।॥(){}[].,:;\"'`"
+
+        kept = 0
+        prev_was_space = False
+        for i, ch in enumerate(original):
+            if _is_strippable(ch):
+                continue
+            # _strip_punctuation collapses runs of whitespace to one space.
+            if ch.isspace():
+                if prev_was_space:
+                    continue
+                prev_was_space = True
+            else:
+                prev_was_space = False
+            if kept == stripped_pos:
+                return i
+            kept += 1
+        # If pos is at end of stripped string, return end of original.
+        if kept == stripped_pos:
+            return len(original)
+        return None
+
+    @staticmethod
+    def _section_number_prefix(text: str) -> str | None:
+        """Extract the leading section number (e.g. ``१३.``) from an anchor.
+
+        These prefixes are almost always unique on a given page, so anchoring
+        on the section-number marker plus a couple of following tokens is far
+        more reliable than fuzzy-matching the full sentence.
+        """
+        m = re.match(
+            r"^\s*((?:[०-९]+|\d+)(?:\.[०-९\d]+)*\.?)\s+(\S+(?:\s+\S+){0,3})",
+            text,
+        )
+        if not m:
+            return None
+        return f"{m.group(1)} {m.group(2)}"
+
     def _assign_start_chars(
         self, nodes: list, markdown: str, page_char_ranges: dict[int, tuple[int, int]],
     ) -> None:
-        """Pass 1: find each node's title in its page region and set start_char."""
+        """Pass 1: find each node's start position in the markdown.
+
+        Priority:
+          1. ``start_text`` — direct text anchor from the user (most reliable)
+          2. Exact title match
+          3. Flexible token match (handles OCR text that differs from title)
+          4. Falls back to -1
+        """
         for node in nodes:
             title = node.get("title", "").strip()
-            if not title:
+            start_text = node.get("start_text", "").strip()
+            if not title and not start_text:
                 node["start_char"] = -1
                 node["end_char"] = -1
                 self._assign_start_chars(node.get("children", []), markdown, page_char_ranges)
                 continue
 
-            escaped = re.escape(title)
             region_start, region_end = self._get_page_region(node, page_char_ranges, len(markdown))
             region_text = markdown[region_start:region_end]
+            match = None
+            strategy_used = "none"
 
-            match = re.search(rf"(#{1,6}[^\n]*{escaped})", region_text, re.IGNORECASE)
-            if not match:
-                match = re.search(escaped, region_text, re.IGNORECASE)
+            # Strategy 1: start_text anchor (user-provided, most reliable)
+            if start_text:
+                clean = self._sanitize_anchor_text(start_text)
+                if clean:
+                    # 1a. Exact match on the original text.
+                    escaped = re.escape(clean)
+                    match = re.search(escaped, region_text, re.IGNORECASE)
+                    if match:
+                        strategy_used = "start_text:exact"
+                    else:
+                        # 1b. Punctuation-stripped exact match — handles
+                        # tree anchors that omit visarga, danda, or parens
+                        # the OCR captured.
+                        anchor_clean = self._strip_punctuation(clean)
+                        region_clean = self._strip_punctuation(region_text)
+                        if anchor_clean:
+                            escaped = re.escape(anchor_clean)
+                            stripped_match = re.search(
+                                escaped, region_clean, re.IGNORECASE,
+                            )
+                            if stripped_match:
+                                pos = self._find_in_original(
+                                    region_text, anchor_clean,
+                                    stripped_match.start(),
+                                )
+                                if pos is not None:
+                                    match = _FuzzyMatch(pos, pos + len(clean))
+                                    strategy_used = "start_text:punct_stripped"
+
+                    if not match:
+                        # 1c. Section-number prefix shortcut (e.g. ``१३.``).
+                        prefix = self._section_number_prefix(clean)
+                        if prefix:
+                            escaped = re.escape(prefix)
+                            match = re.search(escaped, region_text, re.IGNORECASE)
+                            if match:
+                                strategy_used = "start_text:section_prefix"
+                            else:
+                                p_clean = self._strip_punctuation(prefix)
+                                if p_clean:
+                                    escaped = re.escape(p_clean)
+                                    region_clean = self._strip_punctuation(region_text)
+                                    sp_match = re.search(
+                                        escaped, region_clean, re.IGNORECASE,
+                                    )
+                                    if sp_match:
+                                        pos = self._find_in_original(
+                                            region_text, p_clean, sp_match.start(),
+                                        )
+                                        if pos is not None:
+                                            match = _FuzzyMatch(pos, pos + len(prefix))
+                                            strategy_used = "start_text:section_prefix_stripped"
+
+                    if not match:
+                        # 1d. Last resort — fuzzy match on the original.
+                        match = self._flexible_title_search(clean, region_text)
+                        if match:
+                            strategy_used = "start_text:fuzzy"
+
+            # Strategy 2: exact title match
+            if not match and title:
+                escaped = re.escape(title)
+                match = re.search(rf"(#{1,6}[^\n]*{escaped})", region_text, re.IGNORECASE)
+                if match:
+                    strategy_used = "title:header_exact"
+                else:
+                    match = re.search(escaped, region_text, re.IGNORECASE)
+                    if match:
+                        strategy_used = "title:body_exact"
+
+            # Strategy 3: flexible token match
+            if not match and title:
+                match = self._flexible_title_search(title, region_text)
+                if match:
+                    strategy_used = "title:fuzzy"
 
             if match:
-                node["start_char"] = region_start + match.start()
+                abs_pos = region_start + match.start()
+                node["start_char"] = abs_pos
             else:
                 node["start_char"] = -1
+                logger.warning(
+                    f"[start_char] UNMATCHED nodeId={node.get('nodeId','?')} "
+                    f"title={title[:40]!r} start_text={start_text[:60]!r}"
+                )
 
             node["end_char"] = -1  # filled in pass 2
             self._assign_start_chars(node.get("children", []), markdown, page_char_ranges)
+
+    @staticmethod
+    def _flexible_title_search(
+        search_text: str, region_text: str, threshold: float = 0.6,
+    ) -> "re.Match | _FuzzyMatch | None":
+        """Fuzzy-match *search_text* in *region_text* using ~60 % similarity.
+
+        Slides a window across *region_text* and returns the best position
+        whose ``SequenceMatcher.ratio()`` meets *threshold*.
+        """
+        from difflib import SequenceMatcher
+        if len(search_text) < 3 or not region_text:
+            return None
+
+        search = search_text.lower()
+        region = region_text.lower()
+        search_len = len(search)
+
+        best_ratio = 0.0
+        best_pos = -1
+
+        # Coarse pass — step by ~10 % of search length
+        step = max(1, search_len // 10)
+        for i in range(0, max(1, len(region) - search_len // 2), step):
+            window = region[i : i + search_len]
+            ratio = SequenceMatcher(None, search, window, autojunk=False).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_pos = i
+
+        # Fine pass — refine around best position with step = 1
+        if best_pos >= 0 and best_ratio >= threshold * 0.9:
+            for i in range(
+                max(0, best_pos - step),
+                min(len(region) - search_len // 2, best_pos + step + 1),
+            ):
+                window = region[i : i + search_len]
+                ratio = SequenceMatcher(None, search, window, autojunk=False).ratio()
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_pos = i
+
+        if best_ratio >= threshold and best_pos >= 0:
+            return _FuzzyMatch(best_pos, best_pos + search_len)
+
+        return None
 
     def _collect_start_chars(self, nodes: list) -> list[int]:
         """Collect all assigned start_char values from the tree (for boundary detection)."""
@@ -332,6 +572,60 @@ class TreeBuilder:
                 node["end_char"] = -1
 
             self._assign_end_chars(node.get("children", []), markdown, all_starts)
+
+    def _assign_end_text_overrides(
+        self, nodes: list, markdown: str, page_char_ranges: dict[int, tuple[int, int]],
+    ) -> None:
+        """Pass 3: override end_char with end_text matches where provided.
+
+        When a node has ``end_text``, search for it in the page region after
+        ``start_char`` and set ``end_char`` to the end of the match.  This
+        gives precise, independent section boundaries.
+        """
+        for node in nodes:
+            end_text = node.get("end_text", "").strip()
+            start = node.get("start_char", -1)
+            if end_text and start >= 0:
+                clean = self._sanitize_anchor_text(end_text)
+                if clean:
+                    region_start, region_end = self._get_page_region(
+                        node, page_char_ranges, len(markdown),
+                    )
+                    search_start = max(start, region_start)
+                    search_text = markdown[search_start:region_end]
+
+                    match = re.search(re.escape(clean), search_text, re.IGNORECASE)
+                    strategy = "end_text:exact" if match else None
+                    if not match:
+                        # Try punctuation-stripped match before fuzzy.
+                        anchor_clean = self._strip_punctuation(clean)
+                        search_clean = self._strip_punctuation(search_text)
+                        if anchor_clean:
+                            sm = re.search(
+                                re.escape(anchor_clean), search_clean, re.IGNORECASE,
+                            )
+                            if sm:
+                                pos = self._find_in_original(
+                                    search_text, anchor_clean, sm.start(),
+                                )
+                                if pos is not None:
+                                    match = _FuzzyMatch(pos, pos + len(clean))
+                                    strategy = "end_text:punct_stripped"
+                    if not match:
+                        match = self._flexible_title_search(clean, search_text)
+                        if match:
+                            strategy = "end_text:fuzzy"
+                    if match:
+                        node["end_char"] = search_start + match.end()
+                    else:
+                        logger.warning(
+                            f"[end_char] UNMATCHED nodeId={node.get('nodeId','?')} "
+                            f"end_text={end_text[:60]!r}"
+                        )
+
+            self._assign_end_text_overrides(
+                node.get("children", []), markdown, page_char_ranges,
+            )
 
     def _parse_json_response(self, response: str) -> Any:
         """Strip markdown fences and parse JSON, tolerating trailing garbage."""

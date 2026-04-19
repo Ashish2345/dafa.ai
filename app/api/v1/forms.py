@@ -86,3 +86,55 @@ class ParseFormData(BaseModel):
         _as_form_func.__signature__ = sig
 
         return _as_form_func
+
+
+class ParseOnlyFormData(BaseModel):
+    """
+    Form data for the standalone parse endpoint.
+
+    Parser-only inputs — no ingestion-specific fields (title, category, strategy).
+    """
+
+    file_type: Literal["url", "file"] = Field("file", description="Input type: 'file' for upload, 'url' for signed URL")
+    file_url: Optional[str] = Field(None, description="URL to download file from (when file_type='url')")
+
+    language: str = Field("en", description="Document language: 'en' or 'ne'")
+    dpi: Optional[int] = Field(None, description="DPI for image/PDF processing (150-600)")
+    extract_tables: Optional[bool] = Field(None, description="Extract tables from document")
+
+    ocr_enabled: Optional[bool] = Field(None, description="Enable OCR for scanned PDFs")
+    ocr_provider: Optional[str] = Field(None, description="OCR provider (google, aws, azure)")
+    ocr_languages: Optional[List[str]] = Field(None, description="OCR languages")
+
+    extract_images: Optional[bool] = Field(None, description="Extract embedded images from PDF")
+
+    orientation_correction: Optional[bool] = Field(None, description="Auto-detect and correct image orientation")
+    jpeg_quality: Optional[int] = Field(None, description="JPEG quality for image compression (1-100)")
+
+    @classmethod
+    def as_form(cls):
+        """Create a FastAPI dependency for parsing multipart form data."""
+        new_params = []
+
+        for field_name, model_field in cls.model_fields.items():
+            default = model_field.default
+            description = model_field.description
+            form_default = Form(default, description=description)
+
+            new_params.append(
+                inspect.Parameter(
+                    field_name,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                    default=form_default,
+                    annotation=model_field.annotation,
+                )
+            )
+
+        async def _as_form_func(**data) -> "ParseOnlyFormData":
+            return cls(**data)
+
+        sig = inspect.signature(_as_form_func)
+        sig = sig.replace(parameters=new_params)
+        _as_form_func.__signature__ = sig
+
+        return _as_form_func

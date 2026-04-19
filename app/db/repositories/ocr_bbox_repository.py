@@ -93,9 +93,10 @@ class OcrBboxRepository:
 
         words = []
         for w in doc.get("words", []):
-            # Check if word's vertical center is within the region
-            word_y_center = (w.get("y0", 0) + w.get("y2", 0)) / 2
-            if y0 <= word_y_center <= y2:
+            # Check if word starts within the region (using top edge, not center,
+            # so words that begin below the boundary are excluded)
+            word_top = w.get("y0", 0)
+            if y0 <= word_top <= y2:
                 words.append(w)
         return words
 

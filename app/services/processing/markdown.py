@@ -68,7 +68,9 @@ class DocumentProcessor:
 
         # Single parse: build all output from _convert_to_markdown_with_bboxes
         full_markdown, page_bbox_map = self._convert_to_markdown_with_bboxes(parsed_result)
-        word_bboxes = self._extract_word_bboxes(parsed_result, full_markdown, page_bbox_map)
+        word_bboxes = self._extract_word_bboxes(
+            parsed_result, full_markdown, page_bbox_map,
+        )
 
         pages = parsed_result.get("pages", [])
         tables = parsed_result.get("tables", [])
@@ -255,9 +257,16 @@ class DocumentProcessor:
     ) -> list[dict]:
         """Extract word-level bounding boxes with character offsets.
 
-        Uses the cleaned OCR DataFrames (which retain word-level x0/y0/x2/y2)
-        and maps each word to its approximate character offset in the full
-        markdown string using the page_bbox_map for page-level start_char.
+        Uses the cleaned OCR DataFrames (which retain 0-1 normalized
+        ``x0/y0/x2/y2``) and maps each word to its approximate character
+        offset in the full markdown string using the page_bbox_map for
+        page-level start_char.
+
+        Coordinate normalization is the OCR provider's responsibility — both
+        ``DigitalOCR`` and the Google Vision wrapper emit unit-normalized
+        coords. If we detect non-normalized values here it indicates a bug
+        in the OCR layer; we log once per page and continue without
+        rescaling so the issue is visible rather than silently masked.
 
         Returns:
             List of dicts, one per page:
@@ -272,6 +281,8 @@ class DocumentProcessor:
                 continue
 
             page_number = pages_data[page_idx]["page_number"] if page_idx < len(pages_data) else page_idx + 1
+
+            pixel_space_logged = False
 
             # Find this page's start_char from page_bbox_map
             page_start_char = 0
@@ -304,16 +315,22 @@ class DocumentProcessor:
                 x2 = float(row["x2"])
                 y2 = float(row["y2"])
 
-                # Validate coordinates are normalized 0-1
-                if x2 > 1.5 or y2 > 1.5:
-                    # Likely pixel coords — skip (shouldn't happen with proper OCR)
-                    logger.warning(f"Word '{text}' has non-normalized coords x2={x2}, y2={y2}, skipping")
-                    continue
+                # OCR backends are expected to emit 0-1 normalized coords —
+                # both DigitalOCR and the Google Vision wrapper do this at
+                # the source. Anything outside [0, 1] is a bug upstream;
+                # warn once per page so it's visible without aborting the
+                # word extraction.
+                if (x2 > 1.5 or y2 > 1.5) and not pixel_space_logged:
+                    logger.warning(
+                        f"Page {page_number}: OCR emitted non-normalized "
+                        f"coords (x2={x2}, y2={y2}). Highlighting may be "
+                        f"misaligned — fix at the OCR provider layer."
+                    )
+                    pixel_space_logged = True
 
                 # Search forward from cursor for this word
                 pos = page_md.find(text, search_cursor)
                 if pos == -1:
-                    # Case-insensitive fallback
                     pos = page_md_lower.find(text.lower(), search_cursor)
                 if pos >= 0:
                     char_offset = page_start_char + pos
@@ -381,16 +398,13 @@ class DocumentProcessor:
 
     def _remove_line_number_markers(self, text: str) -> str:
         """
-        Remove line number markers (-><num><-) from text while preserving content.
+        Remove line number markers (``-> N<-`` with optional padding) from text.
 
-        Args:
-            text: Text with line number markers
-
-        Returns:
-            Clean text without markers
+        The OCR parser right-justifies line numbers to a fixed width, which
+        inserts whitespace inside the delimiters (``-> 6<-``, ``->  12<-``),
+        so the inner-whitespace must be allowed in the pattern.
         """
-        # Pattern: -><number><- or -><number><- at start of line
-        pattern = r"->\d+<-\s*"
+        pattern = r"->\s*\d+\s*<-\s*"
         clean_text = re.sub(pattern, "", text)
         return clean_text.strip()
 

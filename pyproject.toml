@@ -17,7 +17,6 @@ dependencies = [
     # OCR & Image Processing
     "Pillow>=10.2.0,<11.0.0",
     "numpy>=1.26.0,<3.0.0",
-    "opencv-python>=4.9.0,<5.0.0",
     "PyMuPDF>=1.24.0,<2.0.0",
     # Cloud OCR Providers
     "boto3>=1.34.0,<2.0.0",
@@ -51,6 +50,7 @@ dependencies = [
     "email-validator>=2.0.0,<3.0.0",
     "pandas>=3.0.2",
     "aiosmtplib>=5.1.0",
+    "opencv-python>=4.13.0.92",
 ]
 
 [project.optional-dependencies]
