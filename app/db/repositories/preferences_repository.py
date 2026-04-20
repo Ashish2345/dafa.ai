@@ -15,12 +15,24 @@ from loguru import logger
 DEFAULT_PREFERENCES: dict[str, Any] = {
     "organization": "",
     "role": "",
+    # Phase 14 profile extras
+    "display_name": "",
+    "phone": "",
+    "license_number": "",
+    "practice_area": "",
+    "timezone": "",
     "theme": "light",
     "language": "en",
     "font_size_px": 15,
     "notify_new_gazettes": True,
     "notify_product_updates": True,
     "notify_weekly_roundup": True,
+    # Phase 14 notifications + privacy toggles
+    "notify_shared_thread_activity": True,
+    "improve_retrieval": True,
+    "product_analytics": True,
+    # null means "keep forever"
+    "thread_retention_days": None,
     "starred_collections": [],
 }
 
@@ -44,11 +56,16 @@ class PreferencesRepository:
     async def update_for_user(self, user_id: str, patch: dict[str, Any]) -> dict:
         """
         Upsert a preferences document for the user.
-        Only applies non-None fields from `patch`.
+        Applies every key present in `patch` (None is a valid value for nullable
+        fields like ``thread_retention_days``; callers that want partial updates
+        should use ``model_dump(exclude_unset=True)`` at the API layer so the
+        key is omitted entirely instead of sent as None).
         Returns the full preferences after the update.
         """
-        # Strip None values so callers can send partial updates
-        clean_patch = {k: v for k, v in patch.items() if v is not None}
+        # Previously we stripped Nones, but that broke "set retention back to
+        # forever" (the caller sends null). The API layer already trims keys
+        # the caller didn't set, so we can safely pass everything through now.
+        clean_patch = dict(patch)
 
         if not clean_patch:
             # Nothing to update — just return current state

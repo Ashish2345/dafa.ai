@@ -366,8 +366,18 @@ async def upload_document(
             )
 
             db = await get_database()
+            # Phase 14: uploads default to private + owned by the caller unless
+            # an admin explicitly uploads into a public category from the CLI.
+            is_admin = (current_user.get("role") or "user") == "admin"
+            upload_scope = "public" if (is_admin and form_data.category not in (None, "", "workspace")) else "private"
+            upload_user_id = None if upload_scope == "public" else current_user["sub"]
             await DocumentRepository(db).save_initial(
-                document_id, filename, category=form_data.category, title=form_data.title,
+                document_id,
+                filename,
+                category=form_data.category,
+                title=form_data.title,
+                user_id=upload_user_id,
+                scope=upload_scope,
             )
 
             background_tasks.add_task(
@@ -406,8 +416,17 @@ async def upload_document(
 
         # Create the record now so polling works immediately
         db = await get_database()
+        # Phase 14: same visibility rule as the parsed-content path above.
+        is_admin = (current_user.get("role") or "user") == "admin"
+        upload_scope = "public" if (is_admin and form_data.category not in (None, "", "workspace")) else "private"
+        upload_user_id = None if upload_scope == "public" else current_user["sub"]
         await DocumentRepository(db).save_initial(
-            document_id, filename, category=form_data.category, title=form_data.title,
+            document_id,
+            filename,
+            category=form_data.category,
+            title=form_data.title,
+            user_id=upload_user_id,
+            scope=upload_scope,
         )
 
         # Hand off to background — temp file is deleted by the task when done
@@ -569,10 +588,30 @@ async def list_documents(
     category: Optional[str] = Query(None, description="Filter by category"),
     current_user: dict = Depends(get_current_user),
 ):
-    """List all ingested documents, optionally filtered by category."""
+    """List ingested documents visible to the caller.
+
+    Phase 14 visibility rules:
+    - Public docs (``scope='public'`` or legacy records with no ``scope``) are
+      visible to everyone.
+    - Private docs (``scope='private'``) are visible *only* to their owner.
+    - ``category='workspace'`` is a UX shorthand for "my private uploads" —
+      it's translated to ``scope='private', user_id=<me>``.
+    """
     db = await get_database()
     repo = DocumentRepository(db)
-    documents = await repo.list_all(skip=skip, limit=limit, category=category)
+
+    user_id = current_user["sub"]
+
+    # `workspace` category is a UX alias for the caller's private uploads.
+    if category == "workspace":
+        documents = await repo.list_all(
+            skip=skip, limit=limit, scope="private", user_id=user_id,
+        )
+    else:
+        # Otherwise show public docs + any private docs owned by the caller.
+        documents = await repo.list_all(
+            skip=skip, limit=limit, category=category, user_id=user_id,
+        )
     return {"documents": documents, "count": len(documents)}
 
 

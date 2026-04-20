@@ -102,13 +102,17 @@ async def delete_conversation(
     return None
 
 
-@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("")
 async def clear_all(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
 ):
-    """Clear all chat history (conversations + messages) for the current user."""
+    """Clear all chat history (conversations + messages) for the current user.
+
+    Phase 14: returns ``{deleted: N}`` so the frontend danger-zone action can
+    show a "Deleted N threads" toast.
+    """
     repo = ChatRepository(db)
     count = await repo.clear_all_for_user(current_user["sub"])
     logger.info(f"User {current_user['sub']} cleared {count} chat docs")
-    return None
+    return {"deleted": count}

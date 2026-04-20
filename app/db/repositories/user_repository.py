@@ -89,6 +89,17 @@ class UserRepository:
         )
         return result.modified_count > 0
 
+    async def delete_by_id(self, user_id: str) -> bool:
+        """
+        Hard-delete a user document. Ancillary data (preferences, chats, starred,
+        private documents, team memberships) is cleaned up by the caller so each
+        subsystem gets a chance to log its own counts.
+        """
+        result = await self.collection.delete_one({"user_id": user_id})
+        if result.deleted_count > 0:
+            logger.info(f"Deleted user: {user_id}")
+        return result.deleted_count > 0
+
     @staticmethod
     def _to_public(user_doc: dict) -> dict:
         """Return user dict without sensitive fields."""

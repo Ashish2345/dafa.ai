@@ -297,6 +297,81 @@ async def get_me(current_user: dict = Depends(get_current_user), db=Depends(get_
     return UserResponse(**user)
 
 
+# ── Delete account ──────────────────────────────────────────────────────────
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """
+    Hard-delete the current user's account and every record scoped to them.
+
+    Removes:
+    - the user document itself
+    - user_preferences
+    - chat_conversations + chat_messages
+    - starred_responses
+    - feedback rows
+    - private documents (scope='private', user_id=<current>)
+    - team_memberships (as owner or member) and team_invites they own
+    """
+    from app.db.repositories.chat_repository import ChatRepository
+    from app.db.repositories.preferences_repository import PreferencesRepository
+    from app.db.repositories.starred_repository import StarredRepository
+
+    user_id = current_user["sub"]
+
+    # 1. Chats (conversations + messages)
+    try:
+        await ChatRepository(db).clear_all_for_user(user_id)
+    except Exception as e:
+        logger.warning(f"delete_me: chat cleanup failed: {e}")
+
+    # 2. Starred responses
+    try:
+        await StarredRepository(db).delete_all_for_user(user_id)
+    except Exception as e:
+        logger.warning(f"delete_me: starred cleanup failed: {e}")
+
+    # 3. Preferences
+    try:
+        await PreferencesRepository(db).delete_for_user(user_id)
+    except Exception as e:
+        logger.warning(f"delete_me: preferences cleanup failed: {e}")
+
+    # 4. Private documents owned by this user (scope='private')
+    try:
+        await db.documents.delete_many({"user_id": user_id, "scope": "private"})
+    except Exception as e:
+        logger.warning(f"delete_me: document cleanup failed: {e}")
+
+    # 5. Feedback rows (best-effort, schema may not enforce user_id)
+    try:
+        await db.feedback.delete_many({"user_id": user_id})
+    except Exception as e:
+        logger.warning(f"delete_me: feedback cleanup failed: {e}")
+
+    # 6. Team memberships + invites (Phase 14 collections)
+    try:
+        await db.team_memberships.delete_many(
+            {"$or": [{"owner_user_id": user_id}, {"member_user_id": user_id}]}
+        )
+        await db.team_invites.delete_many({"owner_user_id": user_id})
+    except Exception as e:
+        logger.warning(f"delete_me: team cleanup failed: {e}")
+
+    # 7. Finally the user document
+    repo = UserRepository(db)
+    removed = await repo.delete_by_id(user_id)
+
+    if not removed:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    logger.info(f"Account deleted: {user_id}")
+    return None
+
+
 # ── Google OAuth ────────────────────────────────────────────────────────────
 
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"

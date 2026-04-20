@@ -225,6 +225,9 @@ class StudioRouter:
                     "page": page,
                     "quote": c.text.strip()[:280],
                     "amended_on": c.source.get("amended_on"),
+                    # Phase 14: frontend uses this to disable Share when any
+                    # citation references a private workspace document.
+                    "source_scope": getattr(c, "source_scope", "public") or "public",
                 }
             )
         return out

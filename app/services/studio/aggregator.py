@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-from typing import Iterable
+from dataclasses import dataclass, field
+from typing import Iterable, Literal
 
 from loguru import logger
 
@@ -20,6 +20,11 @@ class AggregatedChunk:
     doc_id: str
     doc_name: str
     source_type: SourceType
+    # Phase 14: 'private' when the originating document is a user's workspace
+    # upload (scope='private'); 'public' otherwise. Threaded into the SSE
+    # citation payload so the frontend's ActionBar can disable Share when any
+    # citation is private.
+    source_scope: Literal["public", "private"] = "public"
 
 
 @dataclass
@@ -83,6 +88,7 @@ class DocumentAggregator:
                         doc_id=doc.id,
                         doc_name=doc.name,
                         source_type=doc.category,
+                        source_scope=getattr(doc, "scope", "public") or "public",
                     )
                 )
 

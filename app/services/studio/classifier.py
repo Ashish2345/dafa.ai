@@ -33,6 +33,10 @@ class CatalogEntry:
     name: str
     category: SourceType
     brief: str = ""
+    # Phase 14: 'private' when this document is a user workspace upload
+    # (scope='private'), 'public' for the shared catalog. Default 'public'
+    # keeps legacy code paths (tests, fixtures) working.
+    scope: Literal["public", "private"] = "public"
 
 
 @dataclass

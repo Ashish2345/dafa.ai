@@ -22,6 +22,7 @@ from app.api.v1.endpoints.user import (
     plans_router,
     preferences_router,
     starred_router,
+    team_router,
     usage_router,
 )
 from app.api.v1.endpoints.health import router as health_router
@@ -47,3 +48,4 @@ api_router.include_router(chats_router)
 api_router.include_router(feedback_router)
 api_router.include_router(plans_router)
 api_router.include_router(usage_router)
+api_router.include_router(team_router)
