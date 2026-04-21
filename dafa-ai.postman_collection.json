@@ -1,96 +1,95 @@
 {
   "info": {
     "name": "dafa.ai API",
-    "description": "Document Parser & RAG (Retrieval-Augmented Generation) API for dafa.ai. Upload documents, extract content via OCR, and query them using LLM-powered search.\n\n## Setup\n1. Register a user via `POST /auth/register`\n2. Login via `POST /auth/login` — the collection auto-saves the tokens\n3. All protected endpoints automatically use `{{access_token}}`\n\n## Environments\nImport the included environment and set:\n- `base_url` — e.g. `http://localhost:8000`\n- `jwt_secret` — only needed for manual token inspection",
+    "description": "RAG-backed legal decision API for dafa.ai. Upload documents, run LLM-powered queries, manage user chats, starred responses, preferences, and quotas.\n\n## Setup\n1. Register via `POST /auth/register` — returns a 6-digit verification code sent to the email.\n2. Verify via `POST /auth/verify-email` — auto-logs in and saves `access_token`/`refresh_token` to collection variables.\n3. Alternatively, use `POST /auth/login` for already-verified users.\n4. Every protected endpoint automatically uses `{{access_token}}` via collection auth.\n\n## Variables\n- `base_url` — default `http://localhost:8000`\n- `access_token`, `refresh_token` — populated by login/verify/refresh scripts\n- `document_id` — populated by the first successful upload\n- `workspace_id` — populated by `record-turn`\n- `starred_id` — populated when you star a response\n\n## Streaming endpoints\n`POST /query/stream` and `POST /studio/query` return `text/event-stream`. Postman's response viewer displays the raw SSE body; use a browser `EventSource` or the Postman Runner's streaming mode for live tokens.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000",
-      "type": "string"
-    },
-    {
-      "key": "access_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "refresh_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "document_id",
-      "value": "",
-      "type": "string"
-    }
+    {"key": "base_url", "value": "http://localhost:8000", "type": "string"},
+    {"key": "access_token", "value": "", "type": "string"},
+    {"key": "refresh_token", "value": "", "type": "string"},
+    {"key": "document_id", "value": "", "type": "string"},
+    {"key": "workspace_id", "value": "", "type": "string"},
+    {"key": "starred_id", "value": "", "type": "string"},
+    {"key": "user_email", "value": "user@example.com", "type": "string"},
+    {"key": "user_password", "value": "securepassword123", "type": "string"}
   ],
   "auth": {
     "type": "bearer",
     "bearer": [
-      {
-        "key": "token",
-        "value": "{{access_token}}",
-        "type": "string"
-      }
+      {"key": "token", "value": "{{access_token}}", "type": "string"}
     ]
   },
   "item": [
     {
       "name": "Health",
-      "description": "Public health-check endpoints for liveness and readiness probes.",
+      "description": "Public liveness and readiness probes.",
       "item": [
         {
           "name": "Liveness",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {"type": "noauth"},
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/health",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "health"]
-            },
-            "description": "Basic liveness check. Returns service version and timestamp."
+            "url": {"raw": "{{base_url}}/api/v1/health", "host": ["{{base_url}}"], "path": ["api", "v1", "health"]},
+            "description": "Basic liveness check. Does not verify dependencies."
           },
           "response": [
             {
               "name": "200 OK",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"status\": \"healthy\",\n  \"version\": \"0.1.0\",\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"healthy\",\n  \"version\": \"0.1.0\",\n  \"timestamp\": \"2026-04-19T12:00:00.000Z\"\n}"
             }
           ]
         },
         {
           "name": "Readiness",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {"type": "noauth"},
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/health/ready",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "health", "ready"]
-            },
-            "description": "Readiness probe — validates database and storage connectivity. Use for Kubernetes readiness checks."
+            "url": {"raw": "{{base_url}}/api/v1/health/ready", "host": ["{{base_url}}"], "path": ["api", "v1", "health", "ready"]},
+            "description": "Readiness probe — verifies database and storage backend."
           },
           "response": [
             {
               "name": "200 Ready",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"status\": \"ready\",\n  \"database\": true,\n  \"storage\": true,\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"ready\",\n  \"database\": true,\n  \"storage\": true,\n  \"timestamp\": \"2026-04-19T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Waitlist",
+      "description": "Public waitlist signup.",
+      "item": [
+        {
+          "name": "Join Waitlist",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"name\": \"John Doe\",\n  \"tier\": \"pro\",\n  \"source\": \"landing\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
+            "url": {"raw": "{{base_url}}/api/v1/waitlist", "host": ["{{base_url}}"], "path": ["api", "v1", "waitlist"]},
+            "description": "Join the waitlist. Upserts by email."
+          },
+          "response": [
             {
-              "name": "200 Not Ready",
+              "name": "200 OK",
               "status": "OK",
               "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"status\": \"not_ready\",\n  \"database\": false,\n  \"storage\": true,\n  \"timestamp\": \"2026-04-11T12:00:00.000Z\"\n}"
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"ok\",\n  \"message\": \"You're on the list!\"\n}"
             }
           ]
         }
@@ -98,56 +97,89 @@
     },
     {
       "name": "Auth",
-      "description": "User registration, login, token refresh, and profile endpoints.",
+      "description": "Registration, email verification, login, password flows, Google OAuth, token refresh, profile.",
       "item": [
         {
           "name": "Register",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\",\n  \"full_name\": \"John Doe\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/auth/register", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "register"]},
+            "description": "Create a new user account. Sends a 6-digit verification code to the email. User cannot login until verified via POST /auth/verify-email."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"is_verified\": false,\n  \"created_at\": \"2026-04-19T12:00:00Z\"\n}"
+            },
+            {"name": "409 Conflict", "status": "Conflict", "code": 409, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"User already exists\"\n}"}
+          ]
+        },
+        {
+          "name": "Verify Email",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200) {",
                   "    const body = pm.response.json();",
-                  "    pm.collectionVariables.set('user_id', body.user_id);",
-                  "    pm.test('User created', () => pm.response.to.have.status(201));",
+                  "    if (body.access_token) pm.collectionVariables.set('access_token', body.access_token);",
+                  "    if (body.refresh_token) pm.collectionVariables.set('refresh_token', body.refresh_token);",
                   "}"
                 ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {"type": "noauth"},
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"securepassword123\",\n  \"full_name\": \"John Doe\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"code\": \"123456\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "register"]
-            },
-            "description": "Create a new user account.\n\n**Fields:**\n- `email` — valid email address\n- `password` — minimum 8 characters\n- `full_name` — 1–100 characters"
+            "url": {"raw": "{{base_url}}/api/v1/auth/verify-email", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "verify-email"]},
+            "description": "Submit the 6-digit code from the verification email. On success, auto-logs the user in and saves tokens to collection variables."
           },
           "response": [
             {
-              "name": "201 Created",
-              "status": "Created",
-              "code": 201,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
+              "name": "200 Verified",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"verified\",\n  \"access_token\": \"eyJ...\",\n  \"refresh_token\": \"eyJ...\",\n  \"token_type\": \"bearer\"\n}"
             },
-            {
-              "name": "409 Conflict",
-              "status": "Conflict",
-              "code": 409,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"User already exists\"\n}"
-            }
+            {"name": "400 Invalid Code", "status": "Bad Request", "code": 400, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Invalid or expired verification code\"\n}"}
+          ]
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/auth/resend-verification", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "resend-verification"]},
+            "description": "Resend the 6-digit verification code. Always returns success to avoid email enumeration."
+          },
+          "response": [
+            {"name": "200 Sent", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"sent\"\n}"}
           ]
         },
         {
@@ -172,43 +204,76 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {"type": "noauth"},
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"securepassword123\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "login"]
-            },
-            "description": "Authenticate with email and password. The test script automatically saves `access_token` and `refresh_token` to collection variables."
+            "url": {"raw": "{{base_url}}/api/v1/auth/login", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login"]},
+            "description": "Authenticate a verified user. Access token expires in 30 min; refresh token in 7 days. Test script saves both."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"access_token\": \"eyJ...\",\n  \"refresh_token\": \"eyJ...\",\n  \"token_type\": \"bearer\"\n}"},
+            {"name": "401 Bad Credentials", "status": "Unauthorized", "code": 401, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Incorrect email or password\"\n}"},
+            {"name": "403 Unverified", "status": "Forbidden", "code": 403, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Email not verified\"\n}"}
+          ]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            {
-              "name": "401 Bad Credentials",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Incorrect email or password\"\n}"
+            "url": {"raw": "{{base_url}}/api/v1/auth/forgot-password", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "forgot-password"]},
+            "description": "Send a 6-digit reset code to the email. Always returns success to avoid enumeration."
+          },
+          "response": [
+            {"name": "200 Sent", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"sent\"\n}"}
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"code\": \"123456\",\n  \"new_password\": \"newsecurepass123\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            {
-              "name": "403 Disabled Account",
-              "status": "Forbidden",
-              "code": 403,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Account is disabled\"\n}"
-            }
+            "url": {"raw": "{{base_url}}/api/v1/auth/reset-password", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "reset-password"]},
+            "description": "Submit the reset code + a new password (min 8 chars)."
+          },
+          "response": [
+            {"name": "200 Updated", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"password_updated\"\n}"},
+            {"name": "400 Invalid Code", "status": "Bad Request", "code": 400, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Invalid or expired reset code\"\n}"}
+          ]
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{user_password}}\",\n  \"new_password\": \"newsecurepass123\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/auth/change-password", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "change-password"]},
+            "description": "Change the authenticated user's password. Requires the current password."
+          },
+          "response": [
+            {"name": "200 Changed", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"password_changed\"\n}"},
+            {"name": "400 Wrong Password", "status": "Bad Request", "code": 400, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Current password is incorrect\"\n}"}
           ]
         },
         {
@@ -223,45 +288,26 @@
                   "    const body = pm.response.json();",
                   "    pm.collectionVariables.set('access_token', body.access_token);",
                   "    pm.collectionVariables.set('refresh_token', body.refresh_token);",
-                  "    pm.test('Tokens rotated', () => {",
-                  "        pm.expect(body.access_token).to.be.a('string').and.not.empty;",
-                  "    });",
                   "}"
                 ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {"type": "noauth"},
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/refresh",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "refresh"]
-            },
-            "description": "Exchange a valid refresh token for a new access + refresh token pair. Both old tokens are invalidated."
+            "url": {"raw": "{{base_url}}/api/v1/auth/refresh", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "refresh"]},
+            "description": "Exchange a valid refresh token for a new access + refresh token pair. Previous tokens are invalidated."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"token_type\": \"bearer\"\n}"
-            },
-            {
-              "name": "401 Invalid Token",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Invalid token type\"\n}"
-            }
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"access_token\": \"eyJ...\",\n  \"refresh_token\": \"eyJ...\",\n  \"token_type\": \"bearer\"\n}"},
+            {"name": "401 Invalid", "status": "Unauthorized", "code": 401, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Invalid token type\"\n}"}
           ]
         },
         {
@@ -269,35 +315,75 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "me"]
-            },
-            "description": "Returns the profile of the currently authenticated user. Uses the `access_token` collection variable automatically."
+            "url": {"raw": "{{base_url}}/api/v1/auth/me", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "me"]},
+            "description": "Return the authenticated user's profile."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"user_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"user@example.com\",\n  \"full_name\": \"John Doe\",\n  \"role\": \"user\",\n  \"is_active\": true,\n  \"is_verified\": true,\n  \"created_at\": \"2026-04-19T12:00:00Z\"\n}"}
+          ]
+        },
+        {
+          "name": "Google OAuth — Get Consent URL",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/google/login?redirect_uri=http://localhost:3000/oauth/callback&state=abc123",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "google", "login"],
+              "query": [
+                {"key": "redirect_uri", "value": "http://localhost:3000/oauth/callback", "description": "Frontend callback URL"},
+                {"key": "state", "value": "abc123", "description": "CSRF state token"}
+              ]
             },
+            "description": "Return the Google consent URL. The frontend redirects the user to this URL to authorize."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"url\": \"https://accounts.google.com/o/oauth2/v2/auth?...\"\n}"}
+          ]
+        },
+        {
+          "name": "Google OAuth — Callback",
+          "event": [
             {
-              "name": "401 Unauthorized",
-              "status": "Unauthorized",
-              "code": 401,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Invalid or expired token\"\n}"
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', body.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', body.refresh_token);",
+                  "}"
+                ]
+              }
             }
+          ],
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/google/callback?code=GOOGLE_AUTH_CODE&redirect_uri=http://localhost:3000/oauth/callback",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "google", "callback"],
+              "query": [
+                {"key": "code", "value": "GOOGLE_AUTH_CODE", "description": "Authorization code from Google"},
+                {"key": "redirect_uri", "value": "http://localhost:3000/oauth/callback", "description": "Must match the value used in /google/login"}
+              ]
+            },
+            "description": "Exchange the Google authorization code for MeroDafa JWT tokens. Creates the user on first use."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"access_token\": \"eyJ...\",\n  \"refresh_token\": \"eyJ...\",\n  \"token_type\": \"bearer\"\n}"}
           ]
         }
       ]
     },
     {
       "name": "Documents",
-      "description": "Upload, list, retrieve, download, and delete documents. All endpoints require a valid Bearer token.",
+      "description": "Upload, parse, list, fetch, delete documents. Plus PDF/image retrieval and page-count helpers.",
       "item": [
         {
           "name": "Upload Document (file)",
@@ -307,12 +393,9 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (pm.response.code === 200) {",
+                  "if (pm.response.code === 202 || pm.response.code === 200) {",
                   "    const body = pm.response.json();",
-                  "    if (body.document_id) {",
-                  "        pm.collectionVariables.set('document_id', body.document_id);",
-                  "        pm.test('document_id saved', () => pm.expect(body.document_id).to.be.a('string'));",
-                  "    }",
+                  "    if (body.document_id) pm.collectionVariables.set('document_id', body.document_id);",
                   "}"
                 ]
               }
@@ -324,128 +407,29 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": "",
-                  "description": "PDF or image file to upload (max 50 MB). Supported: .pdf, .png, .jpg, .jpeg, .gif, .tiff, .bmp, .webp"
-                },
-                {
-                  "key": "file_type",
-                  "value": "file",
-                  "type": "text",
-                  "description": "\"file\" or \"url\""
-                },
-                {
-                  "key": "language",
-                  "value": "en",
-                  "type": "text",
-                  "description": "\"en\" or \"ne\" (Nepali)"
-                },
-                {
-                  "key": "ocr_enabled",
-                  "value": "true",
-                  "type": "text",
-                  "description": "Enable OCR processing"
-                },
-                {
-                  "key": "ocr_provider",
-                  "value": "google",
-                  "type": "text",
-                  "description": "\"google\", \"aws\", or \"azure\"",
-                  "disabled": true
-                },
-                {
-                  "key": "extract_metadata",
-                  "value": "true",
-                  "type": "text",
-                  "description": "Extract document metadata"
-                },
-                {
-                  "key": "extract_tables",
-                  "value": "false",
-                  "type": "text",
-                  "description": "Extract tables from the document",
-                  "disabled": true
-                },
-                {
-                  "key": "extract_images",
-                  "value": "false",
-                  "type": "text",
-                  "description": "Extract embedded images",
-                  "disabled": true
-                },
-                {
-                  "key": "dpi",
-                  "value": "150",
-                  "type": "text",
-                  "description": "DPI for rendering (150–600)",
-                  "disabled": true
-                },
-                {
-                  "key": "orientation_correction",
-                  "value": "false",
-                  "type": "text",
-                  "description": "Auto-correct page orientation",
-                  "disabled": true
-                },
-                {
-                  "key": "jpeg_quality",
-                  "value": "85",
-                  "type": "text",
-                  "description": "JPEG quality 1–100",
-                  "disabled": true
-                },
-                {
-                  "key": "strategy",
-                  "value": "page_index",
-                  "type": "text",
-                  "description": "\"page_index\" or \"vector\"",
-                  "disabled": true
-                }
+                {"key": "file", "type": "file", "src": "", "description": "PDF or image (PDF/PNG/JPG/TIFF/WebP)"},
+                {"key": "parsed_file", "type": "file", "src": "", "description": "Optional pre-parsed JSON from /documents/parse (skips OCR)", "disabled": true},
+                {"key": "page_index_file", "type": "file", "src": "", "description": "Optional custom tree JSON (skips LLM tree generation)", "disabled": true},
+                {"key": "file_type", "value": "pdf", "type": "text", "description": "\"pdf\" or \"url\""},
+                {"key": "file_url", "value": "", "type": "text", "description": "Required when file_type=url", "disabled": true},
+                {"key": "language", "value": "en", "type": "text", "description": "\"en\" or \"ne\""},
+                {"key": "ocr_provider", "value": "google", "type": "text", "description": "OCR backend (optional)", "disabled": true},
+                {"key": "strategy", "value": "page_index", "type": "text", "description": "\"page_index\" (default) or \"vector\""},
+                {"key": "category", "value": "acts", "type": "text", "description": "Document category tag", "disabled": true},
+                {"key": "title", "value": "", "type": "text", "description": "Display title (defaults to filename)", "disabled": true}
               ]
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/documents/upload",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "documents", "upload"]
-            },
-            "description": "Upload a local file for parsing and ingestion. The `document_id` from the response is automatically saved to the collection variable."
+            "url": {"raw": "{{base_url}}/api/v1/documents/upload", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "upload"]},
+            "description": "Upload a PDF/image and start background ingestion. Returns 202 with `document_id` immediately. Poll `GET /documents/{document_id}` for progress via `status` + `progress_step`."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"COMPLETED\",\n  \"content\": \"Extracted document text...\",\n  \"metadata\": {\n    \"author\": \"John Doe\",\n    \"title\": \"Sample Document\"\n  },\n  \"page_count\": 5,\n  \"tables\": [],\n  \"parsed_at\": \"2026-04-11T12:00:00Z\",\n  \"error\": null\n}"
-            },
-            {
-              "name": "400 Invalid File",
-              "status": "Bad Request",
-              "code": 400,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Unsupported file type\"\n}"
-            }
+            {"name": "202 Accepted", "status": "Accepted", "code": 202, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"processing\",\n  \"message\": \"Ingestion started. Poll GET /documents/{document_id} for progress.\"\n}"}
           ]
         },
         {
           "name": "Upload Document (URL)",
           "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const body = pm.response.json();",
-                  "    if (body.document_id) {",
-                  "        pm.collectionVariables.set('document_id', body.document_id);",
-                  "    }",
-                  "}"
-                ]
-              }
-            }
+            {"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 202) {const body = pm.response.json(); if (body.document_id) pm.collectionVariables.set('document_id', body.document_id);}"]}}
           ],
           "request": {
             "method": "POST",
@@ -453,42 +437,56 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "file_type",
-                  "value": "url",
-                  "type": "text"
-                },
-                {
-                  "key": "file_url",
-                  "value": "https://example.com/sample.pdf",
-                  "type": "text",
-                  "description": "Public URL to a PDF or image"
-                },
-                {
-                  "key": "language",
-                  "value": "en",
-                  "type": "text"
-                },
-                {
-                  "key": "ocr_enabled",
-                  "value": "true",
-                  "type": "text"
-                },
-                {
-                  "key": "extract_metadata",
-                  "value": "true",
-                  "type": "text"
-                }
+                {"key": "file_type", "value": "url", "type": "text"},
+                {"key": "file_url", "value": "https://example.com/sample.pdf", "type": "text", "description": "Public URL to a PDF"},
+                {"key": "language", "value": "en", "type": "text"},
+                {"key": "strategy", "value": "page_index", "type": "text"}
               ]
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/documents/upload",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "documents", "upload"]
-            },
-            "description": "Ingest a document from a public URL instead of a local file upload."
+            "url": {"raw": "{{base_url}}/api/v1/documents/upload", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "upload"]},
+            "description": "Ingest a document from a public URL."
           },
           "response": []
+        },
+        {
+          "name": "Parse (dry-run)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "file", "type": "file", "src": "", "description": "PDF or image to parse"},
+                {"key": "file_type", "value": "pdf", "type": "text"},
+                {"key": "language", "value": "en", "type": "text"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/api/v1/documents/parse", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "parse"]},
+            "description": "Run OCR + markdown conversion without DB persistence. Returns the path to the local JSON output and high-level stats."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"saved_to\": \"/path/to/parsed.json\",\n  \"markdown_chars\": 391078,\n  \"page_count\": 201,\n  \"language\": \"ne\"\n}"}
+          ]
+        },
+        {
+          "name": "Parse Only (per-page text)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "file", "type": "file", "src": "", "description": "PDF or image"},
+                {"key": "file_type", "value": "pdf", "type": "text"},
+                {"key": "language", "value": "en", "type": "text"}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/api/v1/parse", "host": ["{{base_url}}"], "path": ["api", "v1", "parse"]},
+            "description": "Synchronous parse returning per-page text. No DB persistence."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"file_type\": \"pdf\",\n  \"pages\": {\n    \"page_1\": \"Parsed text of page 1...\",\n    \"page_2\": \"Parsed text of page 2...\"\n  }\n}"}
+          ]
         },
         {
           "name": "List Documents",
@@ -500,28 +498,15 @@
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "documents"],
               "query": [
-                {
-                  "key": "skip",
-                  "value": "0",
-                  "description": "Offset (>= 0)"
-                },
-                {
-                  "key": "limit",
-                  "value": "50",
-                  "description": "Page size (1–200)"
-                }
+                {"key": "skip", "value": "0", "description": "Offset (>=0)"},
+                {"key": "limit", "value": "50", "description": "Page size (1–200)"},
+                {"key": "category", "value": "", "description": "Optional category filter", "disabled": true}
               ]
             },
-            "description": "Return a paginated list of all documents belonging to the current user."
+            "description": "Paginated list of documents visible to the current user."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"documents\": [\n    {\n      \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"filename\": \"document.pdf\",\n      \"status\": \"COMPLETED\",\n      \"page_count\": 5,\n      \"created_at\": \"2026-04-11T12:00:00Z\"\n    }\n  ],\n  \"count\": 1\n}"
-            }
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"documents\": [\n    {\n      \"document_id\": \"550e8400-...\",\n      \"filename\": \"document.pdf\",\n      \"status\": \"completed\",\n      \"progress_step\": \"done\",\n      \"category\": \"acts\",\n      \"title\": \"Income Tax Act\",\n      \"created_at\": \"2026-04-19T12:00:00Z\"\n    }\n  ],\n  \"count\": 1\n}"}
           ]
         },
         {
@@ -529,57 +514,72 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/documents/{{document_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "documents", "{{document_id}}"]
-            },
-            "description": "Retrieve full details and extracted content for a specific document. Uses the `document_id` collection variable."
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}"]},
+            "description": "Get document metadata + ingestion status. Poll this while `status=processing` to show a progress bar using `progress_step`."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"COMPLETED\",\n  \"content\": \"Extracted document text...\",\n  \"metadata\": {\n    \"author\": \"John Doe\",\n    \"title\": \"Sample Document\"\n  },\n  \"page_count\": 5,\n  \"created_at\": \"2026-04-11T12:00:00Z\"\n}"
-            },
-            {
-              "name": "404 Not Found",
-              "status": "Not Found",
-              "code": 404,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Document not found\"\n}"
-            }
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"document_id\": \"550e8400-...\",\n  \"filename\": \"document.pdf\",\n  \"status\": \"completed\",\n  \"progress_step\": \"done\",\n  \"category\": \"acts\",\n  \"title\": \"Income Tax Act\",\n  \"created_at\": \"2026-04-19T12:00:00Z\",\n  \"ingest_warnings\": []\n}"},
+            {"name": "404 Not Found", "status": "Not Found", "code": 404, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"Document not found\"\n}"}
           ]
         },
         {
-          "name": "Download Document PDF",
+          "name": "Set Default Questions",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questions\": [\n    \"What is the tax rate for individuals?\",\n    \"What is the deadline for filing returns?\",\n    \"What are the exemption limits?\"\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}/default-questions", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}", "default-questions"]},
+            "description": "Set 1–5 starter questions shown in empty chat state for this document."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"ok\",\n  \"default_questions\": [\"What is the tax rate for individuals?\", \"What is the deadline for filing returns?\"]\n}"}
+          ]
+        },
+        {
+          "name": "Download PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}/pdf", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}", "pdf"]},
+            "description": "Download the original PDF binary. Counts against the user's daily `pdf_downloads` quota."
+          },
+          "response": [
+            {"name": "200 OK — PDF binary", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/pdf"}], "body": "<binary PDF data>"},
+            {"name": "402 Quota Exceeded", "status": "Payment Required", "code": 402, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": {\"error\": \"plan_limit_reached\", \"action\": \"pdf_download\"}\n}"},
+            {"name": "404 Not Found", "status": "Not Found", "code": 404, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": \"PDF not found for document\"\n}"}
+          ]
+        },
+        {
+          "name": "Get Page Image",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/api/v1/documents/{{document_id}}/pdf",
+              "raw": "{{base_url}}/api/v1/documents/{{document_id}}/image/1?scale=1.5",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "documents", "{{document_id}}", "pdf"]
+              "path": ["api", "v1", "documents", "{{document_id}}", "image", "1"],
+              "query": [{"key": "scale", "value": "1.5", "description": "Render scale 0.5–3.0"}]
             },
-            "description": "Download the original PDF binary for a document. Response Content-Type is `application/pdf`."
+            "description": "Get the rendered JPEG for a page. Response headers include `X-Total-Pages` and `Cache-Control: public, max-age=3600`."
           },
           "response": [
-            {
-              "name": "200 OK — PDF binary",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/pdf" }],
-              "body": "<binary PDF data>"
-            },
-            {
-              "name": "404 Not Found",
-              "status": "Not Found",
-              "code": 404,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"PDF not found for document\"\n}"
-            }
+            {"name": "200 JPEG", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "image/jpeg"}, {"key": "X-Total-Pages", "value": "201"}], "body": "<binary JPEG>"}
+          ]
+        },
+        {
+          "name": "Get Page Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}/page-count", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}", "page-count"]},
+            "description": "Return total page count for the document."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"total_pages\": 201\n}"}
           ]
         },
         {
@@ -587,100 +587,408 @@
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": {
-              "raw": "{{base_url}}/api/v1/documents/{{document_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "documents", "{{document_id}}"]
-            },
-            "description": "Permanently delete a document and all associated data (metadata, page index, GridFS files)."
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}"]},
+            "description": "Permanently delete the document and all strategy-specific data (trees, GridFS PDF, OCR bboxes)."
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"status\": \"deleted\",\n  \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"status\": \"deleted\",\n  \"document_id\": \"550e8400-...\"\n}"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Highlights",
+      "description": "Bounding-box retrieval for citation highlighting and text-selection overlays.",
+      "item": [
+        {
+          "name": "Get Highlights for Node IDs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/documents/{{document_id}}/highlights?node_ids=1,2,5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "documents", "{{document_id}}", "highlights"],
+              "query": [{"key": "node_ids", "value": "1,2,5", "description": "Comma-separated integer node IDs from chunks[].source"}]
             },
-            {
-              "name": "404 Not Found",
-              "status": "Not Found",
-              "code": 404,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"detail\": \"Document not found\"\n}"
-            }
+            "description": "Return word-level bboxes for citation highlighting. Uses multi-tier resolution (text anchors → char offsets → title search → raw page_bboxes)."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"highlights\": [\n    {\n      \"node_id\": 1,\n      \"title\": \"दफा 8\",\n      \"page_bboxes\": [\n        {\"page\": 21, \"bbox\": {\"x0\": 0.1, \"y0\": 0.2, \"x2\": 0.9, \"y2\": 0.3}}\n      ]\n    }\n  ],\n  \"image_dimensions\": {\"width\": 1240, \"height\": 1754}\n}"}
+          ]
+        },
+        {
+          "name": "Get Page Words",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}/page/1/words", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}", "page", "1", "words"]},
+            "description": "Word-level OCR bboxes for a single page. Coordinates are normalized 0–1 relative to the page image."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"page\": 1,\n  \"words\": [\n    {\"text\": \"दफा\", \"x0\": 0.1, \"y0\": 0.2, \"x2\": 0.15, \"y2\": 0.22, \"line\": 3, \"block\": 1, \"char_offset\": 42}\n  ],\n  \"image_dimensions\": {\"width\": 1240, \"height\": 1754}\n}"}
+          ]
+        },
+        {
+          "name": "Get All Words",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/documents/{{document_id}}/words", "host": ["{{base_url}}"], "path": ["api", "v1", "documents", "{{document_id}}", "words"]},
+            "description": "OCR bboxes for every page in a single response (gzipped). Use to avoid N round-trips on large docs."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"image_dimensions\": {\"width\": 1240, \"height\": 1754},\n  \"words_by_page\": {\n    \"1\": [{\"text\": \"दफा\", \"x0\": 0.1, \"y0\": 0.2, \"x2\": 0.15, \"y2\": 0.22}],\n    \"2\": []\n  }\n}"}
           ]
         }
       ]
     },
     {
       "name": "Query",
-      "description": "RAG query endpoints — ask questions against ingested documents.",
+      "description": "RAG query endpoints. `/query` returns a complete JSON payload; `/query/stream` is Server-Sent Events for progressive UIs.",
       "item": [
         {
-          "name": "Query Documents",
+          "name": "Query (non-streaming)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"What is the main topic of this document?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"query\": \"What is the tax rate for individual earning 50k per month?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\",\n  \"filter_conditions\": {\n    \"document_id\": \"{{document_id}}\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/query",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "query"]
-            },
-            "description": "Ask a natural-language question against all ingested documents.\n\n**Fields:**\n- `query` *(required)* — the question\n- `top_k` — number of chunks to retrieve (1–20, default 5)\n- `use_llm` — generate an LLM answer over the retrieved chunks (default `true`)\n- `strategy` — `\"page_index\"` (default) or `\"vector\"`\n- `collection_name` — restrict to a specific Qdrant collection\n- `filter_conditions` — metadata key/value filters"
+            "url": {"raw": "{{base_url}}/api/v1/query", "host": ["{{base_url}}"], "path": ["api", "v1", "query"]},
+            "description": "Ask a question. Enforces the plan's daily `search` quota.\n\n**Fields:**\n- `query` *(required, min 1 char)*\n- `top_k` — 1–20, default 5\n- `use_llm` — default `true`\n- `strategy` — `\"page_index\"` (default) or `\"vector\"`\n- `collection_name` — restrict to a Qdrant collection\n- `filter_conditions` — metadata filters (e.g. `{\"document_id\": \"...\"}`)"
           },
           "response": [
-            {
-              "name": "200 OK",
-              "status": "OK",
-              "code": 200,
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"query\": \"What is the main topic of this document?\",\n  \"answer\": \"The document discusses financial regulations...\",\n  \"chunks\": [\n    {\n      \"text\": \"Chunk text content...\",\n      \"source\": \"document.pdf#page_1\",\n      \"score\": 0.92,\n      \"metadata\": {\n        \"page_number\": 1\n      }\n    }\n  ],\n  \"sources\": [\n    {\n      \"document_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"filename\": \"document.pdf\",\n      \"pages\": [1, 2]\n    }\n  ],\n  \"metadata\": {\n    \"strategy\": \"page_index\",\n    \"retrieval_time_ms\": 245,\n    \"total_chunks\": 1\n  }\n}"
-            }
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"query\": \"What is the tax rate for individual earning 50k per month?\",\n  \"answer\": \"<h3>Summary</h3><p>...</p>\",\n  \"chunks\": [\n    {\n      \"document_id\": \"550e8400-...\",\n      \"document_name\": \"Income Tax Act\",\n      \"section_id\": 108,\n      \"section_title\": \"दफा 8\",\n      \"content\": \"...\",\n      \"page\": 21,\n      \"source\": {\"...\": \"...\"}\n    }\n  ],\n  \"sources\": [{\"...\": \"...\"}],\n  \"metadata\": {\"strategy\": \"page_index\", \"chunks_retrieved\": 5}\n}"},
+            {"name": "402 Quota Exceeded", "status": "Payment Required", "code": 402, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"detail\": {\"error\": \"plan_limit_reached\", \"action\": \"search\"}\n}"}
           ]
         },
         {
-          "name": "Query with Vector Strategy",
+          "name": "Query (streaming SSE)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Accept", "value": "text/event-stream"}
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"What are the tax implications mentioned?\",\n  \"top_k\": 10,\n  \"use_llm\": true,\n  \"strategy\": \"vector\"\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"query\": \"What is the interest rate on overdue tax?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\",\n  \"response_language\": \"en\",\n  \"filter_conditions\": {\n    \"document_id\": \"{{document_id}}\"\n  },\n  \"conversation_history\": [\n    {\"role\": \"user\", \"content\": \"What is TDS?\"},\n    {\"role\": \"assistant\", \"content\": \"TDS stands for Tax Deducted at Source...\"}\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/query",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "query"]
+            "url": {"raw": "{{base_url}}/api/v1/query/stream", "host": ["{{base_url}}"], "path": ["api", "v1", "query", "stream"]},
+            "description": "Streaming query. Returns `text/event-stream` with the following event sequence:\n\n**Happy path:**\n1. `status` — `{step: \"loading\"}`\n2. `status` — `{step: \"navigating\"}`\n3. `status` — `{step: \"extracting\", message: \"Reading 5 sections from Income Tax Act…\"}`\n4. `status` — `{step: \"synthesizing\"}`\n5. `token` — many events: `{text: \"partial answer chunk\"}`\n6. `done` — `{query, answer, chunks, sources, follow_ups: [], metadata}`\n7. `follow_ups` — `{follow_ups: [\"question 1\", \"question 2\", \"question 3\"]}` (best-effort)\n\n**On error:** `error` event with `{message}`.\n\n**Fields accepted** (same as /query, plus):\n- `response_language` — `\"en\"` or `\"ne\"`; auto-detected if omitted\n- `conversation_history` — array of `{role, content}` for follow-up context"
+          },
+          "response": [
+            {
+              "name": "200 OK — SSE stream (sample)",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "text/event-stream"}],
+              "body": "event: status\ndata: {\"step\": \"loading\", \"message\": \"Getting your document ready…\"}\n\nevent: status\ndata: {\"step\": \"navigating\", \"message\": \"Finding the sections you need…\"}\n\nevent: status\ndata: {\"step\": \"extracting\", \"message\": \"Reading 5 relevant sections from Income Tax Act…\"}\n\nevent: status\ndata: {\"step\": \"synthesizing\", \"message\": \"Preparing your answer…\"}\n\nevent: token\ndata: {\"text\": \"<h3>📄 Summary</h3>\"}\n\nevent: token\ndata: {\"text\": \"<p>For individuals earning NPR 50,000 per month...</p>\"}\n\nevent: done\ndata: {\"query\": \"...\", \"answer\": \"...\", \"chunks\": [...], \"sources\": [...], \"follow_ups\": [], \"metadata\": {\"strategy\": \"page_index\", \"chunks_retrieved\": 5}}\n\nevent: follow_ups\ndata: {\"follow_ups\": [\"How is TDS deducted?\", \"What are the tax slabs?\", \"When is the filing deadline?\"]}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Studio",
+      "description": "Cross-source unified query (acts, rules, finance, NRB, IRD, gazette).",
+      "item": [
+        {
+          "name": "Studio Query (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Accept", "value": "text/event-stream"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversation_id\": \"studio-1\",\n  \"message\": \"What are the recent regulatory changes affecting banks?\",\n  \"history\": [],\n  \"pinned_types\": []\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "description": "Same as Query Documents but uses the vector (embedding) retrieval strategy instead of page_index."
+            "url": {"raw": "{{base_url}}/api/v1/studio/query", "host": ["{{base_url}}"], "path": ["api", "v1", "studio", "query"]},
+            "description": "Cross-source streaming query. Emits the same SSE event types as `/query/stream` (`status`, `token`, `done`, `follow_ups`, `error`)."
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "User / Chats",
+      "description": "Conversation sessions and message history. A conversation is keyed by `workspace_id` (typically the document id).",
+      "item": [
+        {
+          "name": "List Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/chats", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats"]},
+            "description": "List the current user's conversations (newest first). Respects plan's `chat_history_days` retention."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"items\": [\n    {\n      \"id\": \"chat-abc\",\n      \"workspace_id\": \"8b85fcee-...\",\n      \"workspace_label\": \"Income Tax Act\",\n      \"title\": \"What is TDS?\",\n      \"preview\": \"TDS stands for Tax Deducted at Source...\",\n      \"last_activity_at\": \"2026-04-19T12:00:00Z\"\n    }\n  ],\n  \"total\": 1\n}"}
+          ]
         },
         {
-          "name": "Query with Collection Filter",
+          "name": "Record Turn",
+          "event": [
+            {"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 201) {const body = pm.response.json(); if (body.workspace_id) pm.collectionVariables.set('workspace_id', body.workspace_id);}"]}}
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [{"key": "Content-Type", "value": "application/json"}],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"What regulations apply to finance companies?\",\n  \"top_k\": 5,\n  \"use_llm\": true,\n  \"strategy\": \"page_index\",\n  \"collection_name\": \"finance_acts\",\n  \"filter_conditions\": {\n    \"language\": \"en\"\n  }\n}",
-              "options": { "raw": { "language": "json" } }
+              "raw": "{\n  \"workspace_id\": \"{{document_id}}\",\n  \"workspace_label\": \"Income Tax Act\",\n  \"query\": \"What is the tax rate for individuals?\",\n  \"answer_preview\": \"The tax rate depends on your income slab...\"\n}",
+              "options": {"raw": {"language": "json"}}
             },
-            "url": {
-              "raw": "{{base_url}}/api/v1/query",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "query"]
-            },
-            "description": "Query restricted to a specific Qdrant collection with metadata filtering."
+            "url": {"raw": "{{base_url}}/api/v1/user/chats/record-turn", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats", "record-turn"]},
+            "description": "Record a completed Q&A. Creates or updates the conversation entry for this workspace."
           },
-          "response": []
+          "response": [
+            {"name": "201 Created", "status": "Created", "code": 201, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"id\": \"chat-abc\",\n  \"workspace_id\": \"8b85fcee-...\",\n  \"workspace_label\": \"Income Tax Act\",\n  \"title\": \"What is the tax rate for individuals?\",\n  \"preview\": \"The tax rate depends on your income slab...\",\n  \"last_activity_at\": \"2026-04-19T12:00:00Z\"\n}"}
+          ]
+        },
+        {
+          "name": "Get Messages",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/chats/{{workspace_id}}/messages", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats", "{{workspace_id}}", "messages"]},
+            "description": "Full message array for a workspace."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"workspace_id\": \"8b85fcee-...\",\n  \"messages\": [\n    {\"id\": \"m1\", \"role\": \"user\", \"content\": \"What is TDS?\", \"timestamp\": \"2026-04-19T12:00:00Z\"},\n    {\"id\": \"m2\", \"role\": \"assistant\", \"content\": \"TDS stands for...\", \"timestamp\": \"2026-04-19T12:00:05Z\", \"sources\": [{\"...\": \"...\"}], \"followUps\": [\"...\"], \"chunks\": [{\"...\": \"...\"}]}\n  ]\n}"}
+          ]
+        },
+        {
+          "name": "Replace Messages",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\"id\": \"m1\", \"role\": \"user\", \"content\": \"What is TDS?\", \"timestamp\": \"2026-04-19T12:00:00Z\"},\n    {\"id\": \"m2\", \"role\": \"assistant\", \"content\": \"TDS stands for Tax Deducted at Source\", \"timestamp\": \"2026-04-19T12:00:05Z\", \"sources\": [], \"confidenceLevel\": \"high\", \"warnings\": [], \"followUps\": [], \"chunks\": []}\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/user/chats/{{workspace_id}}/messages", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats", "{{workspace_id}}", "messages"]},
+            "description": "Replace the full messages array. Returns 204 No Content."
+          },
+          "response": [
+            {"name": "204 No Content", "status": "No Content", "code": 204, "header": [], "body": ""}
+          ]
+        },
+        {
+          "name": "Delete Conversation",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/chats/{{workspace_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats", "{{workspace_id}}"]},
+            "description": "Delete one conversation and its messages. Returns 204."
+          },
+          "response": [
+            {"name": "204 No Content", "status": "No Content", "code": 204, "header": [], "body": ""}
+          ]
+        },
+        {
+          "name": "Clear All Chats",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/chats", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "chats"]},
+            "description": "Wipe every conversation + message for the current user. Returns 204."
+          },
+          "response": [
+            {"name": "204 No Content", "status": "No Content", "code": 204, "header": [], "body": ""}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User / Preferences",
+      "description": "User profile preferences (org, role, theme, language, notifications, starred collections).",
+      "item": [
+        {
+          "name": "Get Preferences",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/preferences", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "preferences"]},
+            "description": "Current user's preferences. Returns defaults if never saved."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"organization\": \"\",\n  \"role\": \"\",\n  \"theme\": \"light\",\n  \"language\": \"en\",\n  \"font_size_px\": 15,\n  \"notify_new_gazettes\": true,\n  \"notify_product_updates\": true,\n  \"notify_weekly_roundup\": true,\n  \"starred_collections\": []\n}"}
+          ]
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organization\": \"Acme CPA\",\n  \"role\": \"Senior Accountant\",\n  \"theme\": \"dark\",\n  \"language\": \"en\",\n  \"font_size_px\": 16,\n  \"notify_new_gazettes\": true,\n  \"notify_product_updates\": false,\n  \"notify_weekly_roundup\": true,\n  \"starred_collections\": [\"finance_acts\"]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/user/preferences", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "preferences"]},
+            "description": "Upsert preferences. Only the fields included in the body are updated."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"organization\": \"Acme CPA\",\n  \"role\": \"Senior Accountant\",\n  \"theme\": \"dark\",\n  \"language\": \"en\",\n  \"font_size_px\": 16,\n  \"notify_new_gazettes\": true,\n  \"notify_product_updates\": false,\n  \"notify_weekly_roundup\": true,\n  \"starred_collections\": [\"finance_acts\"],\n  \"updated_at\": \"2026-04-19T12:00:00Z\"\n}"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User / Starred",
+      "description": "Starred/bookmarked responses.",
+      "item": [
+        {
+          "name": "List Starred",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/starred-responses", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "starred-responses"]},
+            "description": "Current user's starred responses, newest first."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"items\": [\n    {\n      \"id\": \"s-1\",\n      \"workspace_id\": \"8b85fcee-...\",\n      \"workspace_label\": \"Income Tax Act\",\n      \"query\": \"What is the tax rate?\",\n      \"answer\": \"...\",\n      \"sources\": [{\"...\": \"...\"}],\n      \"starred_at\": \"2026-04-19T12:00:00Z\"\n    }\n  ],\n  \"total\": 1\n}"}
+          ]
+        },
+        {
+          "name": "Star Response",
+          "event": [
+            {"listen": "test", "script": {"type": "text/javascript", "exec": ["if (pm.response.code === 201) {const body = pm.response.json(); if (body.id) pm.collectionVariables.set('starred_id', body.id);}"]}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workspace_id\": \"{{workspace_id}}\",\n  \"workspace_label\": \"Income Tax Act\",\n  \"query\": \"What is the tax rate for 50k salary?\",\n  \"answer\": \"<h3>Summary</h3><p>The applicable tax rate...</p>\",\n  \"sources\": []\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {"raw": "{{base_url}}/api/v1/user/starred-responses", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "starred-responses"]},
+            "description": "Star a response. Idempotent: an existing (workspace_id, query) match returns the existing entry. Oldest is evicted when the plan cap is reached."
+          },
+          "response": [
+            {"name": "201 Created", "status": "Created", "code": 201, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"id\": \"s-1\",\n  \"workspace_id\": \"8b85fcee-...\",\n  \"workspace_label\": \"Income Tax Act\",\n  \"query\": \"What is the tax rate for 50k salary?\",\n  \"answer\": \"...\",\n  \"sources\": [],\n  \"starred_at\": \"2026-04-19T12:00:00Z\"\n}"}
+          ]
+        },
+        {
+          "name": "Unstar Response",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/starred-responses/{{starred_id}}", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "starred-responses", "{{starred_id}}"]},
+            "description": "Delete a single starred entry. Returns 204."
+          },
+          "response": [
+            {"name": "204 No Content", "status": "No Content", "code": 204, "header": [], "body": ""}
+          ]
+        },
+        {
+          "name": "Clear All Starred",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/starred-responses", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "starred-responses"]},
+            "description": "Wipe every starred response for the current user."
+          },
+          "response": [
+            {"name": "204 No Content", "status": "No Content", "code": 204, "header": [], "body": ""}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User / Usage",
+      "description": "Daily quota + historical usage breakdown per user.",
+      "item": [
+        {
+          "name": "Today's Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/usage/today", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "usage", "today"]},
+            "description": "Current-day searches and PDF downloads with plan limits and remaining quota."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"date\": \"2026-04-19\",\n  \"plan_id\": \"pro\",\n  \"searches\": {\"used\": 34, \"limit\": 100, \"remaining\": 66, \"unlimited\": false},\n  \"pdf_downloads\": {\"used\": 2, \"limit\": 20, \"remaining\": 18, \"unlimited\": false}\n}"}
+          ]
+        },
+        {
+          "name": "Last 7 Days",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/usage/last-7-days", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "usage", "last-7-days"]},
+            "description": "Per-day search + PDF download counts for the last 7 days (oldest first)."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"days\": [\n    {\"date\": \"2026-04-13\", \"searches\": 12, \"pdf_downloads\": 0},\n    {\"date\": \"2026-04-14\", \"searches\": 22, \"pdf_downloads\": 1},\n    {\"date\": \"2026-04-19\", \"searches\": 34, \"pdf_downloads\": 2}\n  ],\n  \"total_searches\": 68,\n  \"total_pdf_downloads\": 3\n}"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Plans",
+      "description": "Public plan catalog + authenticated user's current plan.",
+      "item": [
+        {
+          "name": "List Plans (public)",
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/plans", "host": ["{{base_url}}"], "path": ["api", "v1", "plans"]},
+            "description": "Full plan catalog. Used by marketing/billing UI. No auth required."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"plans\": [\n    {\n      \"id\": \"free\",\n      \"name\": \"Free\",\n      \"description\": \"Get started\",\n      \"price_npr\": 0,\n      \"period\": \"monthly\",\n      \"highlight\": false,\n      \"order\": 0,\n      \"limits\": {\n        \"searches_per_day\": 10,\n        \"pdf_downloads_per_day\": 2,\n        \"gazette_years\": 1,\n        \"chat_history_days\": 7,\n        \"max_starred_responses\": 10,\n        \"api_access\": false\n      },\n      \"features\": [\"Core search\", \"Limited downloads\"]\n    }\n  ],\n  \"default_plan\": \"free\"\n}"}
+          ]
+        },
+        {
+          "name": "My Plan",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {"raw": "{{base_url}}/api/v1/user/plan", "host": ["{{base_url}}"], "path": ["api", "v1", "user", "plan"]},
+            "description": "Plan assigned to the authenticated user."
+          },
+          "response": [
+            {"name": "200 OK", "status": "OK", "code": 200, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"plan\": {\n    \"id\": \"pro\",\n    \"name\": \"Pro\",\n    \"description\": \"For serious research\",\n    \"price_npr\": 2500,\n    \"period\": \"monthly\",\n    \"highlight\": true,\n    \"order\": 1,\n    \"limits\": {\n      \"searches_per_day\": 100,\n      \"pdf_downloads_per_day\": 20,\n      \"gazette_years\": 5,\n      \"chat_history_days\": 365,\n      \"max_starred_responses\": 100,\n      \"api_access\": false\n    },\n    \"features\": [\"Everything in Free\", \"100 searches/day\", \"Full chat history\"]\n  }\n}"}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "description": "User-submitted feedback with optional screenshot.",
+      "item": [
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "message", "value": "The answer formatting broke on long lists.", "type": "text", "description": "3–4000 chars"},
+                {"key": "category", "value": "bug", "type": "text", "description": "bug | wrong_answer | feature | ui | other"},
+                {"key": "image", "type": "file", "src": "", "description": "Optional screenshot (PNG/JPEG/WebP/GIF, max 3 MB)", "disabled": true}
+              ]
+            },
+            "url": {"raw": "{{base_url}}/api/v1/feedback", "host": ["{{base_url}}"], "path": ["api", "v1", "feedback"]},
+            "description": "Submit feedback. Returns 413 if the image is too large, 415 for unsupported image types, 422 if the message is too short/long."
+          },
+          "response": [
+            {"name": "201 Created", "status": "Created", "code": 201, "header": [{"key": "Content-Type", "value": "application/json"}], "body": "{\n  \"id\": \"fb-1\",\n  \"status\": \"new\",\n  \"created_at\": \"2026-04-19T12:00:00Z\",\n  \"message\": \"Thanks — we got it.\"\n}"}
+          ]
         }
       ]
     }
