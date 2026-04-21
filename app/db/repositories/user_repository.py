@@ -66,11 +66,19 @@ class UserRepository:
 
     async def get_by_id(self, user_id: str) -> Optional[dict]:
         """
-        Fetch a user by user_id (without hashed_password).
+        Fetch a user by user_id (without hashed_password or the profile photo
+        blob — `profile_photo_url` is kept because it's needed by `/auth/me`).
 
         Returns None if not found.
         """
-        doc = await self.collection.find_one({"user_id": user_id}, {"_id": 0, "hashed_password": 0})
+        doc = await self.collection.find_one(
+            {"user_id": user_id},
+            {
+                "_id": 0,
+                "hashed_password": 0,
+                "profile_photo_base64": 0,
+            },
+        )
         return doc
 
     async def set_verified(self, email: str) -> bool:

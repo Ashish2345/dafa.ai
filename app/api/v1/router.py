@@ -18,9 +18,12 @@ from app.api.v1.endpoints.parse import router as parse_router
 from app.api.v1.endpoints.studio import router as studio_router
 from app.api.v1.endpoints.user import (
     chats_router,
+    connected_accounts_router,
+    export_router,
     feedback_router,
     plans_router,
     preferences_router,
+    profile_photo_router,
     starred_router,
     team_router,
     usage_router,
@@ -49,3 +52,6 @@ api_router.include_router(feedback_router)
 api_router.include_router(plans_router)
 api_router.include_router(usage_router)
 api_router.include_router(team_router)
+api_router.include_router(profile_photo_router)
+api_router.include_router(export_router)
+api_router.include_router(connected_accounts_router)

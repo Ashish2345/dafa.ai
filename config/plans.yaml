@@ -16,55 +16,73 @@ default_plan: starter
 
 plans:
   - id: starter
-    name: Starter
-    description: Solo CAs and students exploring Mero Dafa
+    name: Free
+    description: "20 questions / month \u00b7 3 private documents \u00b7 Public catalog only \u00b7 1 user"
     price_npr: 0
     period: monthly
     highlight: false
     order: 1
     limits:
-      searches_per_day: 10
+      searches_per_day: 20          # treated as per-period cap in UI copy
       pdf_downloads_per_day: 3
       gazette_years: 2
-      chat_history_days: 7           # older conversations disappear from sidebar
+      chat_history_days: 7
       max_starred_responses: 10
       api_access: false
     features:
-      - 10 questions per day
-      - Latest 2 years of Gazette
-      - Standard RAG chat
-      - 3 PDF downloads per day
-      - Email support
+      - 20 questions / month
+      - 3 private documents
+      - Public catalog only
+      - 1 user
 
   - id: pro
-    name: Pro
-    description: Audit firms and busy CAs
-    price_npr: 7999
+    name: Professional
+    description: "Unlimited questions \u00b7 50 private documents \u00b7 Up to 5 seats \u00b7 PDF viewer & citations"
+    price_npr: 2500
     period: monthly
     highlight: true
     order: 2
     limits:
-      searches_per_day: -1         # unlimited
+      searches_per_day: -1
       pdf_downloads_per_day: -1
-      gazette_years: -1            # full archive
-      chat_history_days: -1        # unlimited retention
+      gazette_years: -1
+      chat_history_days: -1
       max_starred_responses: 50
       api_access: false
     features:
       - Unlimited questions
-      - Full archive (2015-2081)
-      - Priority table parsing
-      - Unlimited PDF downloads
-      - Team collaboration folders
-      - Priority email support
+      - 50 private documents
+      - Up to 5 seats
+      - PDF viewer & citations
+
+  - id: firm
+    name: Firm
+    description: "Everything in Professional \u00b7 250 private documents \u00b7 Up to 25 seats \u00b7 Shared pinned & threads \u00b7 SSO & audit log"
+    price_npr: 12500
+    period: monthly
+    highlight: false
+    order: 3
+    limits:
+      searches_per_day: -1
+      pdf_downloads_per_day: -1
+      gazette_years: -1
+      chat_history_days: -1
+      max_starred_responses: 250
+      api_access: false
+    features:
+      - Everything in Professional
+      - 250 private documents
+      - Up to 25 seats
+      - Shared pinned & threads
+      - SSO & audit log
 
   - id: enterprise
     name: Enterprise
-    description: Banks, insurance, and multinationals
+    description: "Unlimited documents \u00b7 Unlimited seats \u00b7 Dedicated support \u00b7 On-prem option \u00b7 Custom SLA"
     price_npr: null                # contact sales
     period: custom
     highlight: false
-    order: 3
+    order: 4
     limits:
       searches_per_day: -1
       pdf_downloads_per_day: -1
@@ -73,8 +91,8 @@ plans:
       max_starred_responses: -1
       api_access: true
     features:
-      - Everything in Pro
-      - Dedicated account manager
-      - On-premise / private cloud
-      - API access
-      - Custom legal logic
+      - Unlimited documents
+      - Unlimited seats
+      - Dedicated support
+      - On-prem option
+      - Custom SLA

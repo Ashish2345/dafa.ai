@@ -468,6 +468,15 @@ async def google_callback(
     elif not user.get("is_verified", False):
         await repo.set_verified(email)
 
+    # Record the Google link so the Connected accounts settings page can show
+    # it. Idempotent — $set on every callback refreshes the timestamp only
+    # if not already present.
+    from datetime import datetime, timezone
+    await db.users.update_one(
+        {"email": email},
+        {"$set": {"google_linked_at": user.get("google_linked_at") or datetime.now(timezone.utc)}},
+    )
+
     if not user.get("is_active", True):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 

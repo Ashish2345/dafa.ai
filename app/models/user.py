@@ -33,6 +33,10 @@ class UserResponse(BaseModel):
     is_active: bool = Field(..., description="Whether the account is active")
     is_verified: bool = Field(default=False, description="Whether email is verified")
     created_at: datetime = Field(..., description="Account creation timestamp")
+    profile_photo_url: Optional[str] = Field(
+        default=None,
+        description="Relative URL to the user's uploaded profile photo (null if none)",
+    )
 
 
 class TokenResponse(BaseModel):
