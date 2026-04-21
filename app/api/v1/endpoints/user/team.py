@@ -28,6 +28,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.db.mongodb import get_database
 from app.db.repositories.user_repository import UserRepository
+from app.services.email_service import EmailService, email_service_dep
+from app.settings import settings as app_settings
 from app.utils.auth import get_current_user
 
 
@@ -174,14 +176,26 @@ async def create_invites(
     body: CreateInvitesRequest,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
+    email_service: EmailService = Depends(email_service_dep),
 ):
     """
     Create one invite record per email. De-duplicates against existing *pending*
     invites for the same (owner, email) — returns the existing row instead of
     creating a duplicate.
+
+    Phase 16d: after the row is persisted we fire an invite email via the
+    configured email service. A failed send does NOT abort the request — the
+    invite row is still returned so the owner can hit "Resend" from the UI.
     """
     owner_id = current_user["sub"]
     created: list[TeamInvite] = []
+
+    # Load owner profile once so every invite email has a consistent sender
+    # display name + team label.
+    user_repo = UserRepository(db)
+    owner_profile = await user_repo.get_by_id(owner_id)
+    owner_name = (owner_profile or {}).get("full_name") or current_user.get("email") or "A MeroDafa user"
+    team_name = _derive_team_name(owner_profile, owner_id)
 
     for email in body.emails:
         email_str = str(email)
@@ -196,8 +210,37 @@ async def create_invites(
         await db.team_invites.insert_one(doc)
         created.append(TeamInvite(**_strip_id(doc)))
 
+        # Send email best-effort; failure only logs.
+        try:
+            await email_service.send_invite(
+                to=email_str,
+                token=doc["token"],
+                owner_name=owner_name,
+                team_name=team_name,
+                note=doc.get("note"),
+                role=doc["role"],
+                frontend_url=app_settings.frontend_url,
+            )
+        except Exception as exc:
+            logger.warning(f"Invite email to {email_str} failed: {exc}")
+
     logger.info(f"User {owner_id} created {len(created)} invite(s)")
     return CreateInvitesResponse(created=created)
+
+
+def _derive_team_name(owner_profile: Optional[dict], owner_id: str) -> str:
+    """
+    Best-effort label for the team. Preferences have `organization`; fall
+    back to the owner's name; finally to a generic "MeroDafa team".
+    """
+    if owner_profile:
+        org = owner_profile.get("organization")
+        if org:
+            return str(org)
+        full = owner_profile.get("full_name")
+        if full:
+            return f"{full}'s team"
+    return "a MeroDafa team"
 
 
 @router.post("/invites/{invite_id}/resend", response_model=TeamInvite)
@@ -205,10 +248,11 @@ async def resend_invite(
     invite_id: str,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
+    email_service: EmailService = Depends(email_service_dep),
 ):
     """
-    Push the invite's ``expires_at`` out by another 7 days and return it.
-    Stubs out the actual email send (no email service wired yet).
+    Push the invite's ``expires_at`` out by another 7 days, re-send the
+    invite email, and return the updated row.
     """
     owner_id = current_user["sub"]
 
@@ -230,6 +274,25 @@ async def resend_invite(
         {"$set": {"expires_at": new_expiry}},
     )
     existing["expires_at"] = new_expiry
+
+    # Phase 16d: re-fire the invite email. Best-effort — caller still gets
+    # the updated invite row on failure.
+    try:
+        user_repo = UserRepository(db)
+        owner_profile = await user_repo.get_by_id(owner_id)
+        owner_name = (owner_profile or {}).get("full_name") or current_user.get("email") or "A MeroDafa user"
+        await email_service.send_invite(
+            to=existing["email"],
+            token=existing["token"],
+            owner_name=owner_name,
+            team_name=_derive_team_name(owner_profile, owner_id),
+            note=existing.get("note"),
+            role=existing.get("role", "member"),
+            frontend_url=app_settings.frontend_url,
+        )
+    except Exception as exc:
+        logger.warning(f"Invite resend email to {existing['email']} failed: {exc}")
+
     return TeamInvite(**_strip_id(existing))
 
 

@@ -38,6 +38,7 @@ api_router = APIRouter()
 # Public routes
 api_router.include_router(health_router)
 api_router.include_router(auth.router)
+api_router.include_router(auth.invite_router)
 api_router.include_router(waitlist_router)
 
 # Protected routes (require JWT)

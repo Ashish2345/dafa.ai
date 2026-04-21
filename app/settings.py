@@ -121,6 +121,12 @@ class Settings(BaseSettings):
     smtp_from_name: str = Field(default="MeroDafa", description="From display name")
     verification_code_expire_minutes: int = Field(default=10, description="OTP code expiry in minutes")
 
+    # Frontend URL (used in invite emails, password reset links, etc.)
+    frontend_url: str = Field(
+        default="http://localhost:5173",
+        description="Public URL of the frontend app — used to build invite / reset links.",
+    )
+
     # Logging
     log_level: str = Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 
