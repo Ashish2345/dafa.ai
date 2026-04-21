@@ -136,14 +136,24 @@ async def resend_verification(body: ResendVerificationRequest, db=Depends(get_da
 
 # ── Login ───────────────────────────────────────────────────────────────────
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login")
 async def login(body: UserLogin, db=Depends(get_database)):
     """
     Authenticate with email and password.
 
     Returns JWT access token (30 min) and refresh token (7 days).
     Requires email to be verified first.
+
+    Two-factor flow:
+      - If the user has `totp_enabled=True` and `totp_code` is NOT in the
+        request body, we return 202 Accepted with `{requires_totp: true}` so
+        the frontend can prompt for the code and resubmit.
+      - If a `totp_code` is provided, we verify it against the active TOTP
+        secret (or any unused backup code). On mismatch we 401 with a
+        `two_factor_required` marker so the UI keeps the field visible.
     """
+    from fastapi.responses import JSONResponse
+
     repo = UserRepository(db)
     user = await repo.get_by_email(body.email)
 
@@ -162,6 +172,47 @@ async def login(body: UserLogin, db=Depends(get_database)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email not verified. Please check your inbox for the verification code.",
         )
+
+    # ── Two-factor gate ──────────────────────────────────────────────────
+    if user.get("totp_enabled") and user.get("totp_secret"):
+        from app.api.v1.endpoints.user.two_factor import (
+            _match_backup_code,
+            verify_totp_code,
+        )
+
+        if not body.totp_code:
+            # Password is valid, but a second factor is still required. We
+            # don't issue any tokens yet — the frontend must re-submit with
+            # `totp_code`.
+            return JSONResponse(
+                status_code=status.HTTP_202_ACCEPTED,
+                content={
+                    "requires_totp": True,
+                    "message": "Enter the 6-digit code from your authenticator app.",
+                },
+            )
+
+        code_ok = verify_totp_code(user["totp_secret"], body.totp_code)
+        backup_idx: int | None = None
+        if not code_ok:
+            backup_idx = await _match_backup_code(
+                body.totp_code, user.get("totp_backup_codes", [])
+            )
+            if backup_idx is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={
+                        "error": "invalid_totp",
+                        "message": "Invalid authentication code. Try again or use a backup code.",
+                    },
+                )
+            # Consume the backup code — one-time use only.
+            remaining = list(user.get("totp_backup_codes", []))
+            remaining.pop(backup_idx)
+            await db.users.update_one(
+                {"user_id": user["user_id"]},
+                {"$set": {"totp_backup_codes": remaining}},
+            )
 
     access_token = create_access_token(
         user_id=user["user_id"],

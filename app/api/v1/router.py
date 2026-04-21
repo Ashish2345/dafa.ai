@@ -26,6 +26,7 @@ from app.api.v1.endpoints.user import (
     profile_photo_router,
     starred_router,
     team_router,
+    two_factor_router,
     usage_router,
 )
 from app.api.v1.endpoints.health import router as health_router
@@ -55,3 +56,4 @@ api_router.include_router(team_router)
 api_router.include_router(profile_photo_router)
 api_router.include_router(export_router)
 api_router.include_router(connected_accounts_router)
+api_router.include_router(two_factor_router)

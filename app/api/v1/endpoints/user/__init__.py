@@ -7,6 +7,7 @@ from .preferences import router as preferences_router
 from .profile_photo import router as profile_photo_router
 from .starred import router as starred_router
 from .team import router as team_router
+from .two_factor import router as two_factor_router
 from .usage import router as usage_router
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "profile_photo_router",
     "starred_router",
     "team_router",
+    "two_factor_router",
     "usage_router",
 ]

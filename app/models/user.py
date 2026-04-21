@@ -21,6 +21,13 @@ class UserLogin(BaseModel):
 
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., description="Password")
+    totp_code: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional 6-digit TOTP code (or 9-char backup code) when the user "
+            "has 2FA enabled. First call without it is expected to return 202."
+        ),
+    )
 
 
 class UserResponse(BaseModel):
@@ -36,6 +43,10 @@ class UserResponse(BaseModel):
     profile_photo_url: Optional[str] = Field(
         default=None,
         description="Relative URL to the user's uploaded profile photo (null if none)",
+    )
+    totp_enabled: bool = Field(
+        default=False,
+        description="Whether the user has confirmed TOTP 2FA enrolment",
     )
 
 

@@ -51,6 +51,9 @@ dependencies = [
     "pandas>=3.0.2",
     "aiosmtplib>=5.1.0",
     "opencv-python>=4.13.0.92",
+    # Two-factor auth (Phase 16b): RFC 6238 TOTP + QR code generation.
+    "pyotp>=2.9.0,<3.0.0",
+    "qrcode[pil]>=7.4.0,<9.0.0",
 ]
 
 [project.optional-dependencies]
