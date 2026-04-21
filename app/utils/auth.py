@@ -45,16 +45,25 @@ def _create_token(data: dict, expires_delta: timedelta) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def create_access_token(user_id: str, email: str, role: str) -> str:
+def create_access_token(user_id: str, email: str, role: str, session_id: str | None = None) -> str:
+    payload = {"sub": user_id, "email": email, "role": role, "type": "access"}
+    if session_id:
+        # Phase 16c: embed the tracked session so /user/sessions can identify
+        # "this device" on subsequent reads and /auth/refresh can bump the
+        # correct last_seen_at row.
+        payload["sid"] = session_id
     return _create_token(
-        {"sub": user_id, "email": email, "role": role, "type": "access"},
+        payload,
         timedelta(minutes=settings.access_token_expire_minutes),
     )
 
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(user_id: str, session_id: str | None = None) -> str:
+    payload: dict = {"sub": user_id, "type": "refresh"}
+    if session_id:
+        payload["sid"] = session_id
     return _create_token(
-        {"sub": user_id, "type": "refresh"},
+        payload,
         timedelta(days=settings.refresh_token_expire_days),
     )
 

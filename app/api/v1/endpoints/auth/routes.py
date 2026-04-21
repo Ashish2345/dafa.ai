@@ -4,7 +4,7 @@ password reset, Google OAuth, and current user profile.
 """
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from loguru import logger
 
 from app.db.mongodb import get_database
@@ -72,7 +72,7 @@ async def register(body: UserCreate, db=Depends(get_database)):
 # ── Verify email ────────────────────────────────────────────────────────────
 
 @router.post("/verify-email")
-async def verify_email(body: VerifyEmailRequest, db=Depends(get_database)):
+async def verify_email(body: VerifyEmailRequest, request: Request, db=Depends(get_database)):
     """
     Verify email with the 6-digit code. Marks the user as verified so they can log in.
     """
@@ -93,10 +93,18 @@ async def verify_email(body: VerifyEmailRequest, db=Depends(get_database)):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    # Phase 16c — same session tracking as /auth/login.
+    from app.api.v1.endpoints.user.sessions import record_session_on_login
+
+    session_id = await record_session_on_login(db, user["user_id"], request)
+
     access_token = create_access_token(
         user_id=user["user_id"], email=user["email"], role=user["role"],
+        session_id=session_id,
     )
-    refresh_token = create_refresh_token(user_id=user["user_id"])
+    refresh_token = create_refresh_token(
+        user_id=user["user_id"], session_id=session_id,
+    )
 
     logger.info(f"Email verified: {body.email}")
     return {"status": "verified", "access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
@@ -137,7 +145,7 @@ async def resend_verification(body: ResendVerificationRequest, db=Depends(get_da
 # ── Login ───────────────────────────────────────────────────────────────────
 
 @router.post("/login")
-async def login(body: UserLogin, db=Depends(get_database)):
+async def login(body: UserLogin, request: Request, db=Depends(get_database)):
     """
     Authenticate with email and password.
 
@@ -214,14 +222,24 @@ async def login(body: UserLogin, db=Depends(get_database)):
                 {"$set": {"totp_backup_codes": remaining}},
             )
 
+    # Phase 16c — create a session row so the user can see this device on
+    # the settings page and revoke it later. Embed the session_id as `sid` in
+    # both tokens so `/auth/refresh` can bump last_seen_at.
+    from app.api.v1.endpoints.user.sessions import record_session_on_login
+
+    session_id = await record_session_on_login(db, user["user_id"], request)
+
     access_token = create_access_token(
         user_id=user["user_id"],
         email=user["email"],
         role=user["role"],
+        session_id=session_id,
     )
-    refresh_token = create_refresh_token(user_id=user["user_id"])
+    refresh_token = create_refresh_token(
+        user_id=user["user_id"], session_id=session_id,
+    )
 
-    logger.info(f"User logged in: {body.email}")
+    logger.info(f"User logged in: {body.email} (session {session_id})")
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -313,6 +331,7 @@ async def refresh_token(body: RefreshRequest, db=Depends(get_database)):
         )
 
     user_id: str = payload.get("sub", "")
+    session_id: str | None = payload.get("sid")
     repo = UserRepository(db)
     user = await repo.get_by_id(user_id)
 
@@ -322,14 +341,55 @@ async def refresh_token(body: RefreshRequest, db=Depends(get_database)):
     if not user.get("is_active", True):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
+    # Phase 16c — reject refresh attempts from revoked sessions so remote
+    # sign-outs from the settings page take effect on the next access-token
+    # expiry (≤ 30 min).
+    if session_id:
+        from app.api.v1.endpoints.user.sessions import (
+            is_session_revoked,
+            touch_session_on_refresh,
+        )
+
+        if await is_session_revoked(db, session_id):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session revoked — please sign in again",
+            )
+        await touch_session_on_refresh(db, session_id)
+
     access_token = create_access_token(
         user_id=user["user_id"],
         email=user["email"],
         role=user["role"],
+        session_id=session_id,
     )
-    new_refresh_token = create_refresh_token(user_id=user["user_id"])
+    new_refresh_token = create_refresh_token(
+        user_id=user["user_id"], session_id=session_id,
+    )
 
     return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
+
+
+# ── Logout ──────────────────────────────────────────────────────────────────
+
+@router.post("/logout")
+async def logout(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database),
+):
+    """
+    Revoke the current session so subsequent refresh calls fail. The client
+    should also drop its locally-stored tokens.
+    """
+    sid = current_user.get("sid")
+    if sid:
+        from datetime import datetime, timezone
+        await db.user_sessions.update_one(
+            {"session_id": sid, "user_id": current_user["sub"]},
+            {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc)}},
+        )
+        logger.info(f"Logout: user={current_user['sub']} sid={sid}")
+    return {"status": "logged_out"}
 
 
 # ── Current user ────────────────────────────────────────────────────────────
@@ -457,6 +517,7 @@ async def google_login(
 
 @router.post("/google/callback", summary="Exchange Google auth code for tokens")
 async def google_callback(
+    request: Request,
     code: str = Query(..., description="Authorization code from Google"),
     redirect_uri: str = Query(..., description="Same redirect_uri used in /google/login"),
     db=Depends(get_database),
@@ -531,9 +592,19 @@ async def google_callback(
     if not user.get("is_active", True):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
-    # 4. Issue MeroDafa tokens
-    merodafa_access = create_access_token(user_id=user["user_id"], email=user["email"], role=user["role"])
-    merodafa_refresh = create_refresh_token(user_id=user["user_id"])
+    # Phase 16c — same session-tracking flow as /auth/login.
+    from app.api.v1.endpoints.user.sessions import record_session_on_login
 
-    logger.info(f"Google login: {email}")
+    session_id = await record_session_on_login(db, user["user_id"], request)
+
+    # 4. Issue MeroDafa tokens
+    merodafa_access = create_access_token(
+        user_id=user["user_id"], email=user["email"], role=user["role"],
+        session_id=session_id,
+    )
+    merodafa_refresh = create_refresh_token(
+        user_id=user["user_id"], session_id=session_id,
+    )
+
+    logger.info(f"Google login: {email} (session {session_id})")
     return {"access_token": merodafa_access, "refresh_token": merodafa_refresh, "token_type": "bearer"}

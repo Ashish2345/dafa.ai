@@ -24,6 +24,7 @@ from app.api.v1.endpoints.user import (
     plans_router,
     preferences_router,
     profile_photo_router,
+    sessions_router,
     starred_router,
     team_router,
     two_factor_router,
@@ -57,3 +58,4 @@ api_router.include_router(profile_photo_router)
 api_router.include_router(export_router)
 api_router.include_router(connected_accounts_router)
 api_router.include_router(two_factor_router)
+api_router.include_router(sessions_router)
