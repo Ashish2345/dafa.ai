@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -36,6 +37,11 @@ class StudioQueryRequest(BaseModel):
     # Phase 15 (requires a structural index change).
     scope_act_slug: str | None = Field(default=None)
     scope_doc_id: str | None = Field(default=None)
+    # NEW
+    persona: Optional[Literal["business", "lawyer", "accountant", "student", "journalist"]] = Field(
+        default=None,
+        description="Caller persona — used by the classifier to refine document selection.",
+    )
 
 
 def _sse(event: str, data: dict) -> str:
@@ -130,6 +136,7 @@ async def studio_query(
                 catalog=catalog,
                 history=history,
                 pinned_types=request.pinned_types,
+                persona=request.persona,
             ):
                 yield _sse(evt.kind, evt.payload)
         except Exception as exc:

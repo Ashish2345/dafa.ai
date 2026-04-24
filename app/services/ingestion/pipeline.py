@@ -110,6 +110,8 @@ class IngestionPipeline:
         language: str = "en",
         on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
         custom_tree: dict | None = None,
+        title: str | None = None,
+        user_summary: str | None = None,
     ) -> dict[str, Any]:
         """Run the full ingestion pipeline.
 
@@ -198,6 +200,24 @@ class IngestionPipeline:
             metadata = extractor.extract_metadata(markdown, document_name=document_name)
             metadata["language"] = language
             metadata["document_name"] = document_name
+
+            # Step 3b: ensure we have a one-line summary on the document record.
+            from app.services.ingestion.summary import SummaryGenerator
+
+            effective_summary = (user_summary or "").strip()
+            if not effective_summary:
+                await _step("Generating summary...")
+                gen = SummaryGenerator()
+                effective_summary = await gen.generate(
+                    title=title or document_name,
+                    markdown=markdown,
+                    language=language,
+                )
+
+            # Persist the summary onto the stub document record so the classifier
+            # catalog picks it up as soon as the doc moves to 'completed'.
+            if self.document_repo:
+                await self.document_repo.set_summary(document_id, effective_summary)
 
             # Step 4: Store original PDF and page images in GridFS
             await self._save_pdf_and_images(
@@ -317,6 +337,8 @@ class IngestionPipeline:
         on_progress: Optional[Callable[[str], Awaitable[None]]] = None,
         custom_tree: Optional[dict] = None,
         pdf_path: Optional[str] = None,
+        title: str | None = None,
+        user_summary: str | None = None,
     ) -> dict[str, Any]:
         """Ingest from pre-parsed content (OCR + markdown already done by caller).
 
@@ -403,6 +425,21 @@ class IngestionPipeline:
             metadata = extractor.extract_metadata(markdown, document_name=document_name)
             metadata["language"] = language
             metadata["document_name"] = document_name
+
+            from app.services.ingestion.summary import SummaryGenerator
+
+            effective_summary = (user_summary or "").strip()
+            if not effective_summary:
+                await _step("Generating summary...")
+                gen = SummaryGenerator()
+                effective_summary = await gen.generate(
+                    title=title or document_name,
+                    markdown=markdown,
+                    language=language,
+                )
+
+            if self.document_repo:
+                await self.document_repo.set_summary(document_id, effective_summary)
 
             ingest_kwargs: dict[str, Any] = {
                 "on_progress": on_progress,

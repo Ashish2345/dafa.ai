@@ -53,6 +53,7 @@ class StudioRouter:
         catalog: list[CatalogEntry],
         history: Iterable[tuple[str, str]] | None = None,
         pinned_types: list[SourceType] | None = None,
+        persona: str | None = None,
     ) -> AsyncIterator[StudioEvent]:
         by_id = {e.id: e for e in catalog}
 
@@ -62,6 +63,7 @@ class StudioRouter:
             catalog=catalog,
             history=history,
             pinned_types=pinned_types,
+            persona=persona,
         )
 
         # Resolve selected ids → CatalogEntry objects.

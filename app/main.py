@@ -52,6 +52,17 @@ async def lifespan(app: FastAPI):
         await mongodb.connect(settings)
         # Load plan catalog from config/plans.yaml
         plan_catalog.load()
+        # Seed the legal-domain catalog + document indexes (idempotent).
+        from app.db.mongodb import get_database
+        from app.db.repositories.document_repository import DocumentRepository
+        from app.db.seeds import seed_legal_domains
+        _db = await get_database()
+        await seed_legal_domains(_db)
+        _doc_repo = DocumentRepository(_db)
+        await _doc_repo.ensure_indexes()
+        # Backfill slugs for any pre-Phase-18 documents so /documents/by-slug
+        # and the frontend's /act/:slug routing resolves them.
+        await _doc_repo.backfill_slugs()
         # Pre-warm Gemini context caches in the background so the first user
         # after a restart doesn't pay the cache-creation latency.
         from app.services.llm.prewarm import prewarm_caches

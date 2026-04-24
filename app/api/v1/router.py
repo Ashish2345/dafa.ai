@@ -14,6 +14,7 @@ Endpoint structure:
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, documents, query
+from app.api.v1.endpoints.domains import router as domains_router
 from app.api.v1.endpoints.parse import router as parse_router
 from app.api.v1.endpoints.studio import router as studio_router
 from app.api.v1.endpoints.user import (
@@ -40,10 +41,12 @@ api_router.include_router(health_router)
 api_router.include_router(auth.router)
 api_router.include_router(auth.invite_router)
 api_router.include_router(waitlist_router)
+api_router.include_router(domains_router)
 
 # Protected routes (require JWT)
 api_router.include_router(documents.router)
 api_router.include_router(documents.highlights_router)
+api_router.include_router(documents.tree_router)
 api_router.include_router(parse_router)
 api_router.include_router(query.router)
 api_router.include_router(query.stream_router)

@@ -95,6 +95,8 @@ async def _run_parsed_ingestion_background(
             on_progress=on_progress,
             custom_tree=custom_tree,
             pdf_path=pdf_path,
+            title=form_data.title,
+            user_summary=form_data.summary,
         )
 
         if result.get("status") == "failed":
@@ -184,6 +186,8 @@ async def _run_ingestion_background(
             language=language,
             on_progress=on_progress,
             custom_tree=custom_tree,
+            title=form_data.title,
+            user_summary=form_data.summary,
         )
 
         if result.get("status") == "failed":
@@ -378,6 +382,8 @@ async def upload_document(
                 title=form_data.title,
                 user_id=upload_user_id,
                 scope=upload_scope,
+                domain_slug=form_data.domain_slug,
+                icon=form_data.icon,
             )
 
             background_tasks.add_task(
@@ -427,6 +433,8 @@ async def upload_document(
             title=form_data.title,
             user_id=upload_user_id,
             scope=upload_scope,
+            domain_slug=form_data.domain_slug,
+            icon=form_data.icon,
         )
 
         # Hand off to background — temp file is deleted by the task when done
@@ -586,6 +594,7 @@ async def list_documents(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     category: Optional[str] = Query(None, description="Filter by category"),
+    domain_slug: Optional[str] = Query(None, description="Filter by legal-domain slug (e.g. 'tax')"),
     current_user: dict = Depends(get_current_user),
 ):
     """List ingested documents visible to the caller.
@@ -596,6 +605,9 @@ async def list_documents(
     - Private docs (``scope='private'``) are visible *only* to their owner.
     - ``category='workspace'`` is a UX shorthand for "my private uploads" —
       it's translated to ``scope='private', user_id=<me>``.
+
+    Phase 18: ``domain_slug`` filters on the legal-domain taxonomy (e.g.
+    ``?domain_slug=tax``). Stacks with ``category`` when both are set.
     """
     db = await get_database()
     repo = DocumentRepository(db)
@@ -606,13 +618,37 @@ async def list_documents(
     if category == "workspace":
         documents = await repo.list_all(
             skip=skip, limit=limit, scope="private", user_id=user_id,
+            domain_slug=domain_slug,
         )
     else:
         # Otherwise show public docs + any private docs owned by the caller.
         documents = await repo.list_all(
             skip=skip, limit=limit, category=category, user_id=user_id,
+            domain_slug=domain_slug,
         )
     return {"documents": documents, "count": len(documents)}
+
+
+@router.get("/by-slug/{slug}", summary="Get document by slug")
+async def get_document_by_slug(
+    slug: str,
+    current_user: dict = Depends(get_current_user),
+):
+    """Resolve a document slug (e.g. `income-tax-act-2058`) to its record.
+
+    Visibility matches the list endpoint: public + legacy docs always match;
+    private docs match only for their owner. 404 if unknown.
+    """
+    db = await get_database()
+    repo = DocumentRepository(db)
+    doc = await repo.get_by_slug(slug, user_id=current_user["sub"])
+    if not doc:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"Document with slug '{slug}' not found",
+        )
+    return doc
 
 
 @router.get("/{document_id}", summary="Get document details")
@@ -631,6 +667,85 @@ async def get_document(
             message=f"Document {document_id} not found",
         )
     return doc
+
+
+class _DomainPatchBody(BaseModel):
+    domain_slug: Optional[str] = Field(None, description="Legal-domain slug, or null to unset")
+
+
+@router.patch("/{document_id}/domain", summary="Attach (or clear) a document's legal domain")
+async def patch_document_domain(
+    document_id: str,
+    body: _DomainPatchBody,
+    current_user: dict = Depends(get_current_user),
+):
+    """Set or clear the legal-domain assignment on a single document.
+
+    Used by operators to tag the public catalog. Private docs can be tagged
+    by their owner.
+    """
+    db = await get_database()
+    repo = DocumentRepository(db)
+    doc = await repo.get(document_id)
+    if not doc:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"Document {document_id} not found",
+        )
+    # Simple authorisation: public docs require admin; private docs — owner only.
+    scope = doc.get("scope", "public")
+    if scope == "private" and doc.get("user_id") != current_user["sub"]:
+        raise AppException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="E_FORBIDDEN",
+            message="Only the owner can change this document's domain",
+        )
+    # TODO-phase19: gate public-doc domain edits on an admin role check once roles exist.
+    await repo.set_domain(document_id, body.domain_slug)
+    return await repo.get(document_id)
+
+
+class _IconPatchBody(BaseModel):
+    icon: Optional[str] = Field(
+        None,
+        description=(
+            "Lucide icon name (e.g. 'Gavel', 'Banknote'); null to clear. "
+            "Unknown names fall back to FileText on the client."
+        ),
+    )
+
+
+@router.patch("/{document_id}/icon", summary="Set (or clear) a document's icon")
+async def patch_document_icon(
+    document_id: str,
+    body: _IconPatchBody,
+    current_user: dict = Depends(get_current_user),
+):
+    """Set or clear the document's icon (Lucide name).
+
+    Authorisation mirrors `/domain`: owners can tag their private docs;
+    admins will eventually tag the public catalog (role check deferred).
+    """
+    db = await get_database()
+    repo = DocumentRepository(db)
+    doc = await repo.get(document_id)
+    if not doc:
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code="E_NOT_FOUND",
+            message=f"Document {document_id} not found",
+        )
+    scope = doc.get("scope", "public")
+    if scope == "private" and doc.get("user_id") != current_user["sub"]:
+        raise AppException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code="E_FORBIDDEN",
+            message="Only the owner can change this document's icon",
+        )
+    # TODO-phase19: gate public-doc icon edits on an admin role check once roles exist.
+    await repo.set_icon(document_id, body.icon)
+    return await repo.get(document_id)
 
 
 class _DefaultQuestionsBody(BaseModel):

@@ -72,6 +72,7 @@ class TypeClassifier:
         catalog: list[CatalogEntry],
         history: Iterable[tuple[str, str]] | None = None,
         pinned_types: list[SourceType] | None = None,
+        persona: str | None = None,
     ) -> ClassifierResult:
         """Return selected document IDs for the query.
 
@@ -102,6 +103,7 @@ class TypeClassifier:
 
         user_payload = {
             "query": query,
+            "persona": persona,
             "history": [{"role": r, "content": c} for r, c in (history or [])][-3:],
             "catalog": _catalog_to_json(scoped),
         }

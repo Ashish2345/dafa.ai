@@ -23,6 +23,16 @@ class ParseFormData(BaseModel):
     # Document title (required — shown everywhere instead of document_id)
     title: str = Field(..., description="Document title (e.g. 'Nepal Taxation 2022 Edition')")
 
+    # Optional one-line summary shown in the Studio classifier catalog.
+    # When blank, the ingestion pipeline auto-generates one via LLM.
+    summary: Optional[str] = Field(
+        None,
+        description=(
+            "Optional one-line description (≤ 25 words) shown in the classifier "
+            "catalog. Auto-generated during ingestion if left blank."
+        ),
+    )
+
     # File input params
     file_type: Literal["url", "file"] = Field("file", description="Input type: 'file' for upload, 'url' for signed URL")
     file_url: Optional[str] = Field(None, description="URL to download file from (when file_type='url')")
@@ -39,6 +49,17 @@ class ParseFormData(BaseModel):
     category: Optional[str] = Field(
         None,
         description="Library category: acts-rules | finance-acts | nrb | ird | gazette | najirs",
+    )
+    domain_slug: Optional[str] = Field(
+        None,
+        description="Legal-domain slug (e.g. 'tax', 'banking') — see GET /domains.",
+    )
+    icon: Optional[str] = Field(
+        None,
+        description=(
+            "Lucide icon name to show for this document (e.g. 'Gavel', 'Banknote'). "
+            "See the frontend ICON_CATALOG for valid names."
+        ),
     )
 
     # OCR params

@@ -319,7 +319,13 @@ async def remove_member(
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database),
 ):
-    """Owner-only: remove a joined member from the caller's team."""
+    """Owner-only: remove a joined member from the caller's team.
+
+    Phase 18: revoke every active session for the removed user so their
+    already-issued refresh tokens can't be used to regain access. Their next
+    refresh (or access-token expiry) will force a fresh login — at which point
+    the app can surface "you no longer have access to <team>".
+    """
     owner_id = current_user["sub"]
     if member_user_id == owner_id:
         raise HTTPException(
@@ -332,4 +338,15 @@ async def remove_member(
     )
     if result.deleted_count == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+
+    # Boot the user off every device. This is the stop-gap until we model
+    # "organisation membership" on the access-token claim itself.
+    session_result = await db.user_sessions.update_many(
+        {"user_id": member_user_id, "revoked": {"$ne": True}},
+        {"$set": {"revoked": True, "revoked_at": datetime.now(timezone.utc)}},
+    )
+    logger.info(
+        f"Team member removed: owner={owner_id} member={member_user_id} "
+        f"revoked_sessions={session_result.modified_count}"
+    )
     return None

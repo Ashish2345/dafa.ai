@@ -35,17 +35,32 @@ class DocumentUsage:
     citation_count: int
 
 
-async def _retrieve_one(collection_name: str, query: str, top_k: int):
-    """Run PageIndexStrategy retrieval for a single collection.
+async def _retrieve_one(document_id: str, collection_name: str, query: str, top_k: int):
+    """Run PageIndexStrategy retrieval for a single selected document.
 
-    PageIndexStrategy expects `collection_name` as a case-insensitive substring
-    of the document title. We pass the document's title here.
+    We pass both the exact ``document_id`` (as a ``filter_conditions`` hint —
+    skips the strategy's title-substring match entirely) AND the ``collection_name``
+    as a fallback for docs whose id isn't present in the page-index trees yet.
+    The exact id path is critical when the catalog-level scope filter has
+    already narrowed to a single doc — otherwise the strategy would re-match
+    by title and silently miss docs whose title vs. stored ``document_title``
+    drifts (e.g. trailing commas, casing).
     """
     try:
         strategy = await RetrievalFactory.get_strategy(strategy_name="page_index")
-        return await strategy.retrieve(query=query, top_k=top_k, collection_name=collection_name)
+        return await strategy.retrieve(
+            query=query,
+            top_k=top_k,
+            collection_name=collection_name,
+            filter_conditions={"document_id": document_id} if document_id else None,
+        )
     except Exception as exc:
-        logger.warning("Studio retrieval failed for {}: {}", collection_name, exc)
+        logger.warning(
+            "Studio retrieval failed for doc_id={} name={}: {}",
+            document_id,
+            collection_name,
+            exc,
+        )
         return []
 
 
@@ -64,7 +79,7 @@ class DocumentAggregator:
             return [], []
 
         tasks = [
-            asyncio.create_task(_retrieve_one(d.name, query, per_doc_k))
+            asyncio.create_task(_retrieve_one(d.id, d.name, query, per_doc_k))
             for d in selected
         ]
         results = await asyncio.gather(*tasks, return_exceptions=False)
