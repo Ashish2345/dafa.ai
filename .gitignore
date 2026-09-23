@@ -18,3 +18,10 @@ data/
 .cache/
 uploads/
 uploads
+
+# Credentials — never commit
+gcreds.json
+*creds*.json
+*service-account*.json
+*.pem
+*.key
